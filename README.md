@@ -1,10 +1,68 @@
 # Distill Pets AI Studio
 
-A tiny AI team, an explorable world, and useful work worth teaching.
+A playful AI workspace where your pets help you write, research, build, and teach.
 
-Distill Pets AI Studio is a responsive JavaScript PWA for OpenRouter text models. Customize pixel
-pets, watch teacher–student adventures, build and preview code, compare model
-chips, and create reusable Superpowers for your own workflows and reference data.
+Meet **Milo, the teacher**, and **Nova, the student**. Each pet is a customizable
+interface for a model you choose through OpenRouter. Give the teacher a task,
+review a good answer, and turn its useful approach into a reusable **model chip**.
+Equip that chip on a student and try a fresh task to see whether it helps.
+
+While the models work, you can follow their companions through **the Wilds**:
+a little open world with nature walks, classrooms, friendly characters, and
+places to stop and learn. You can also keep the actual responses, generated
+files, sources, and teacher–student messages open beside the adventure.
+
+![Milo the fox teacher in a wizard hat and Nova the bunny student in a flower crown exploring the Wilds together.](docs/images/wilds-together.png)
+
+*Milo and Nova at Curiosity Camp. This is an actual screenshot from the free
+Playground, with custom outfits and scenery; no paid model run is shown.*
+
+## How it works
+
+1. **Choose a job.** Try “explain rainbows to a child,” “write from my product FAQ,”
+   or “build a tiny interactive garden.” Pick a model for each companion.
+2. **Watch the teacher work.** Read the response directly, or follow an outing
+   through the Wilds. Optional student questions and practice rounds make the
+   teaching exchange visible. Send guidance to steer the next eligible step.
+3. **Keep what worked.** Review the answer and click **Distill model chip**.
+   Describe what you liked: perhaps the examples, structure, or tone.
+4. **Review and equip the chip.** The chip stores reusable instructions and
+   approved examples for a base model. It belongs to the model configuration,
+   so you can move it between pets.
+5. **Test a new task.** Compare the same learner with and without the chip on a
+   fresh prompt. Keep, revise, or retire it based on the results.
+
+New to distillation? Open **Distillation Trail** for a guided five-step experiment,
+with visible model-call estimates and checks based on work you have completed.
+**Try the playground** uses labeled prepared samples without an API key. Real
+generation uses your own OpenRouter key and credits.
+
+![Milo and Nova visiting the Flower Classroom together in the Wilds.](docs/images/wilds-flower-classroom.png)
+
+*A stop at the Flower Classroom. On a teaching outing, a flower, tree, or other
+landmark can become an analogy for your chosen topic. The scenery illustrates
+the workflow; returned model output and reviewed examples supply the learning
+material. This gallery scene uses Playground mode.*
+
+## Pets, chips, and Superpowers
+
+| Part | What it means |
+| --- | --- |
+| **Pet** | Your companion and interface. Customize its species, outfit, personality, teaching voice, aura, and trail. |
+| **Model** | The AI that answers the request. Choose an OpenRouter text model from the catalog or enter its model ID. Provider capabilities vary. |
+| **Model chip** | A reviewed bundle of instructions and examples associated with a base model. Equip it on a pet to use that approach on later tasks. |
+| **Superpower** | A custom workflow combining your instructions, reference data, success criteria, and bounded review layers. |
+| **The Wilds** | An interactive visualization of tasks and teaching, with actual output available in the results and team-chat panels. |
+
+Chips and reviewed workflow memory change the context sent to a model; **they do
+not change hosted model weights**. For a separate compatible training workflow,
+export approved live examples as JSONL. OpenRouter has no universal weight-training
+API, and Playground samples are excluded from training exports.
+
+You can use the studio as a focused chat workspace, a coding desk with a live
+preview, a diagram workbench, or a place to build a small library of repeatable
+workflows. The pets make that work visible and fun; you stay in control of what
+gets approved and reused.
 
 ## Run it
 
@@ -117,7 +175,9 @@ paid inference. Real OpenRouter verification requires your own key and credits.
 fixed OpenRouter routes. `portable/` provides the Node HTTP runtime and Vite build.
 `public/` contains PWA assets. `tests/` contains regression scripts.
 
-Download source with Code → Download ZIP, or use a source archive from Releases
-when available. No saved workspace data or credentials are included. Third-party code keeps its respective
+Download the complete [source release](https://github.com/CartyChris/distill-pets-ai-studio/releases/latest),
+or choose Code → Download ZIP for the current branch. The archive includes the
+app, portable server, dependency lockfile, PWA assets, tests, documentation, and
+the screenshots above. No saved workspace data or credentials are included. Third-party code keeps its respective
 license; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The pet sprite engine
 comes from the supplied Pixel Pets artwork and is identified separately there.
