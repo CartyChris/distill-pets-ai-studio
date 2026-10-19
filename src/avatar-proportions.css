@@ -1,0 +1,16 @@
+/* Keep a companion's icon separate from the flexible nickname beside it. */
+.agent-row > .mascot {
+  flex: 0 0 auto;
+}
+
+/* The supplied pet artwork is 36×48. Fit the full sprite into each existing
+   icon slot without stretching it or cropping hats, ears, and accessories. */
+canvas.pixel {
+  object-fit: contain;
+  object-position: center;
+}
+
+.mascot > canvas.pixel {
+  display: block;
+  top: 0;
+}

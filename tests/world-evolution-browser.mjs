@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+const browser=await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined,headless:true,args:['--no-sandbox']});
+const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.route('**/world-evolution-fixture',route=>route.fulfill({contentType:'text/html',body:'<html><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{--paper:#fffdf4;--paper2:#f8f5e8;--ink:#243a30;--line:#d9dfc7;--muted:#6a7963;--green:#467252}*{box-sizing:border-box}body{margin:0}button{cursor:pointer;border:1px solid var(--line);border-radius:10px}dialog{max-width:min(500px,calc(100vw - 24px));border:0;border-radius:20px;padding:24px}.row{display:flex;flex-wrap:wrap;gap:8px}.row button{min-height:44px}dialog .help{font:12px/1.6 system-ui}</style><div id="root"></div><dialog id="modal"></dialog></html>'}));
+try{
+await page.goto((process.env.APP_URL||'http://localhost:5190')+'/world-evolution-fixture');
+await page.evaluate(async()=>{
+  const {createAdventure}=await import('/src/adventure.js');const {cleanAdventure}=await import('/src/adventure-state.js');
+  window.db={adventure:cleanAdventure(null),mode:'demo',appearance:{motion:'full'},agents:{milo:{name:'Milo',pet:'fox',outfit:'scarf',aura:'leaves',trail:'paws'},nova:{name:'Nova',pet:'bunny',outfit:'flowers',aura:'sparkles',trail:'hearts'}},studio:{lastRun:null,output:'',dialogue:[],rounds:1,recursive:false,autoLearn:false}};
+  window.activeOuting=null;window.launches=[];window.guides=[];window.saves=0;
+  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const button=(action,label,classes='',extra='')=>`<button ${/type=/.test(extra)?'':'type="button"'} data-action="${action}" class="${classes}" ${extra}>${label}</button>`;
+  window.adventure=createAdventure({getDB:()=>db,getAgents:()=>db.agents,getOuting:()=>activeOuting,escape,button,icon:()=>'',mascot:()=>'<span aria-hidden="true">✿</span>',save:()=>saves++,paintPets:()=>{},getBusy:()=>false,getError:()=>'',fieldKit:{view:()=>'<p>Field kit stays available.</p>'},toast:()=>{},openModal:html=>{const dialog=document.querySelector('dialog');dialog.innerHTML=html;dialog.showModal();},setPage:()=>{},hasKey:()=>false,setDemo:()=>{},launch:(...args)=>launches.push(args),guide:(...args)=>guides.push(args),teach:()=>{},openResult:()=>{}});
+  document.querySelector('#root').innerHTML=adventure.view();adventure.mount();
+  document.addEventListener('click',async event=>{const button=event.target.closest('[data-action]');if(!button)return;if(button.dataset.action==='close')document.querySelector('dialog').close();else await adventure.action(button.dataset.action,button.dataset);});
+});
+await page.locator('[data-action="world-tab"][data-tab="mission"]').last().click();
+assert.equal(await page.locator('#world-practice').isChecked(),false,'practice is visibly opt-in');
+await page.locator('#world-practice').check();await page.locator('#world-practice-rounds').selectOption('3');await page.locator('#world-dialogue').uncheck();
+assert.match(await page.locator('#world-call-plan').textContent(),/7 planned model calls/);
+await page.locator('#world-goal').fill('Explain how a leaf turns sunlight into useful energy.');
+await page.locator('[data-action="world-launch"]').click();
+const launch=await page.evaluate(()=>launches.at(-1));
+assert.equal(launch[3].practice,true);assert.equal(launch[3].practiceRounds,3);assert.equal(launch[3].dialogue,false,'practice is independent of the optional question exchange');
+await page.locator('[data-action="world-open-places"]').click();
+assert.ok(await page.locator('.world-place').count()>=17);
+await page.locator('#world-place-search').fill('source lighthouse');
+assert.equal(await page.locator('.world-place').count(),1,'atlas search finds a distant biome');
+await page.locator('[data-action="world-place-look"]').click();
+await page.waitForTimeout(200);
+assert.match(await page.locator('[data-world-location]').textContent(),/Coast/,'camera biome reflects the place being viewed');
+assert.equal(await page.evaluate(()=>guides.length),0,'looking around does not call a model');
+await page.locator('[data-action="world-open-places"]').click();await page.locator('#world-place-search').fill('Curiosity Camp');
+await page.locator('[data-action="world-place-walk"]').click();
+assert.equal(await page.evaluate(()=>adventure.metrics().navigation.targetId),'camp');
+await page.waitForFunction(()=>adventure.metrics().navigation?.arrived,{},{timeout:5000});
+assert.match(await page.locator('[data-world-walk]').textContent(),/A little stop at/);
+assert.equal(await page.evaluate(()=>adventure.metrics().resources),0);
+await page.locator('[data-action="world-resume-walk"]').click();assert.equal(await page.evaluate(()=>adventure.metrics().navigation),null);
+await page.locator('[data-action="world-open-places"]').click();await page.locator('#world-place-search').fill('');await page.locator('#world-place-filter').selectOption('npc');
+assert.equal(await page.locator('.world-place').count(),7);
+await page.locator('.world-place-group').first().locator('summary').click();
+await page.evaluate(()=>adventure.action('world-place-inspect',{place:'guide'}));
+await page.locator('[data-action="world-ask-student"]').click();
+assert.equal(await page.evaluate(()=>guides.at(-1)[1]),'student','only the explicit model question uses the guide callback');
+assert.equal(await page.evaluate(()=>guides.length),1);
+await page.evaluate(()=>{activeOuting={id:'practice-run',runId:'run-1',agent:'milo',kind:'teach',status:'running',demo:true,biome:'archive',resources:[],events:[]};db.studio.lastRun={id:'run-1',phase:'student-practice-1',speakingAgent:'nova'};db.studio.dialogue=[{agent:'nova',model:'playground/sample',kind:'Student practice 1',text:'A leaf uses light energy to turn water and carbon dioxide into sugars.',demo:true,status:'complete'},{agent:'milo',model:'playground/sample',kind:'Teacher feedback 1',text:'Keep the distinction between energy and matter clear.',demo:true,status:'complete'}];adventure.refresh();});
+await page.locator('[data-action="world-tab"][data-tab="dialogue"]').click();
+assert.match(await page.locator('#world-dialogue-list').textContent(),/Student practice 1/);assert.match(await page.locator('#world-dialogue-list').textContent(),/Teacher feedback 1/);
+assert.match(await page.locator('[data-world-status]').textContent(),/student practice 1/);
+await page.locator('[data-action="world-close-panel"]').click();
+await page.setViewportSize({width:420,height:912});await page.waitForTimeout(180);await page.screenshot({path:'tests/world-evolution-iphone.png'});
+for(const size of [{width:420,height:912},{width:390,height:844},{width:568,height:320},{width:1280,height:800}]){
+await page.setViewportSize(size);await page.waitForTimeout(100);
+const bad=await page.locator('.world-camera-tools button, .world-tabs button, .world-top-actions button').evaluateAll(bs=>bs.filter(b=>{const r=b.getBoundingClientRect();return r.width<43||r.height<43||r.right>innerWidth+1||r.bottom>innerHeight+1||r.left<0||r.top<0;}).map(b=>b.getAttribute('aria-label')));
+assert.deepEqual(bad,[],`camera and panel controls fit ${size.width}×${size.height}`);
+}
+await page.evaluate(()=>{db.appearance.motion='reduced';adventure.refresh();});assert.equal(await page.locator('#adventure-root').getAttribute('data-gentle'),'true');
+await page.evaluate(()=>adventure.destroy());assert.equal(await page.evaluate(()=>adventure.metrics().runningLoops),0);
+assert.deepEqual(errors,[]);
+console.log('World evolution browser passed: opt-in practice forwarding, accurate call plan, searchable atlas, scenic visits, real practice/feedback display, explicit teacher/student questions, iPhone/landscape targets and cleanup.');
+}finally{await browser.close();}

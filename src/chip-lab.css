@@ -1,0 +1,61 @@
+.chip-lab { display: grid; gap: var(--ui-gap, 18px); min-width: 0; }
+.chip-lab *, .chip-lab *::before, .chip-lab *::after { box-sizing: border-box; }
+.chip-lab .card { min-width: 0; }
+.chip-lab h2 { margin: 9px 0 12px; }
+.chip-lab h3, .chip-lab p, .chip-lab b { overflow-wrap: anywhere; }
+.chip-lab .lab-hero { position: relative; overflow: hidden; background: linear-gradient(120deg, var(--paper), var(--paper2)); }
+.chip-lab .lab-hero::after { content: '✧'; position: absolute; top: 10px; right: 18px; font-size: 70px; color: var(--orange); opacity: .12; pointer-events: none; }
+.chip-lab .lab-hero > * { position: relative; z-index: 1; }
+.chip-lab .lab-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+.chip-lab .lab-row h2 { flex: 1; margin: 0; }
+.chip-lab button { min-width: 44px; min-height: 44px; max-width: 100%; white-space: normal; touch-action: manipulation; }
+.chip-lab input:not([type=checkbox]), .chip-lab textarea, .chip-lab select { display: block; width: 100%; min-width: 0; min-height: 44px; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: var(--ui-control-radius, 12px); padding: 11px 12px; }
+.chip-lab textarea { min-height: 100px; line-height: 1.5; resize: vertical; }
+.chip-lab input[type=checkbox] { width: 21px; height: 21px; margin: 0; flex-shrink: 0; accent-color: var(--blue); }
+.chip-lab label, .chip-lab legend { display: block; font-size: 13px; line-height: 1.5; font-weight: 650; margin: 14px 0 8px; }
+.chip-lab .lab-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 0 16px; }
+.chip-lab .lab-form-grid > div { min-width: 0; }
+.chip-lab .lab-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; margin-top: 18px; }
+.chip-lab .lab-case { min-width: 0; margin: 0; padding: 4px 15px 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper2); }
+.chip-lab .lab-case legend { padding: 0 6px; margin: 0; }
+.chip-lab .lab-case button { margin-top: 10px; font-size: 12px; }
+.chip-lab .lab-case [data-lab-field=rubric] { min-height: 86px; }
+.chip-lab .lab-note { font-size: 12px; line-height: 1.6; color: var(--muted); margin: 13px 0; }
+.chip-lab .lab-reviewed-case { padding: 20px 0; border-top: 1px solid var(--line); }
+.chip-lab .lab-reviewed-case h3 { font-size: 16px; line-height: 1.55; margin: 0; white-space: pre-wrap; }
+.chip-lab .lab-response-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.chip-lab .lab-response { min-width: 0; padding: 16px; background: var(--paper2); border: 1px solid var(--line); border-radius: 15px; }
+.chip-lab .lab-response pre, .chip-lab .lab-example pre { margin: 13px 0; max-height: 430px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 13px; line-height: 1.65; tab-size: 2; overscroll-behavior: contain; }
+.chip-lab .lab-response small { color: var(--muted); }
+.chip-lab .lab-votes { display: flex; gap: 8px; flex-wrap: wrap; border: 0; padding: 0; margin: 14px 0 0; min-width: 0; }
+.chip-lab .lab-votes legend { margin: 0 0 8px; }
+.chip-lab .lab-votes button { font-size: 12px; }
+.chip-lab .lab-example-list { margin: 14px 0; padding: 0; border: 0; min-width: 0; max-height: 460px; overflow-y: auto; overscroll-behavior: contain; }
+.chip-lab .lab-example-list > legend { margin: 0 0 10px; }
+.chip-lab label.lab-example { display: flex; gap: 11px; align-items: flex-start; min-height: 55px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper2); margin: 0 0 8px; cursor: pointer; }
+.chip-lab .lab-example > span { min-width: 0; flex: 1; }
+.chip-lab .lab-example small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); margin-top: 5px; }
+.chip-lab .lab-example details { margin-top: 7px; font-weight: 400; }
+.chip-lab .lab-example summary { min-height: 44px; display: flex; align-items: center; color: var(--blue); cursor: pointer; }
+.chip-lab .lab-example summary::before { content: '▸'; margin-right: 7px; }
+.chip-lab .lab-example details[open] summary::before { content: '▾'; }
+.chip-lab .lab-example pre { font-size: 12px; max-height: 280px; }
+.chip-lab label.lab-approval { display: flex; align-items: flex-start; gap: 11px; min-height: 48px; padding: 12px 0; cursor: pointer; }
+.chip-lab .lab-draft { margin-top: 17px; border-top: 1px solid var(--line); padding-top: 16px; }
+.chip-lab .lab-history { padding: 0 3px; }
+.chip-lab .lab-history label { margin-top: 0; }
+.chip-lab .lab-snapshot { border: 1px solid var(--line); border-radius: 13px; padding: 0 13px; margin: 15px 0; background: var(--paper2); }
+.chip-lab .lab-snapshot summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 650; }
+.chip-lab .lab-snapshot summary::before { content: '▸'; margin-right: 8px; }
+.chip-lab .lab-snapshot[open] > summary::before { content: '▾'; }
+.chip-lab .lab-snapshot pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; max-height: 280px; font: inherit; font-size: 12px; line-height: 1.6; }
+.chip-lab :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .chip-lab .lab-response-grid { grid-template-columns: 1fr; }
+  .chip-lab .lab-response { padding: 13px; }
+  .chip-lab .lab-row > button { flex: 1 1 130px; }
+  .chip-lab .lab-votes button { flex: 1 1 105px; }
+  .chip-lab .lab-votes button:last-child { flex-basis: 100%; }
+  .chip-lab .lab-hero .chip { max-width: 100%; white-space: normal; line-height: 1.5; }
+}
+@media (prefers-reduced-motion: reduce) { .chip-lab * { scroll-behavior: auto; } }

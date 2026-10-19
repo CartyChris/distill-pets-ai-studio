@@ -1,0 +1,41 @@
+{
+  "name": "distill-pets-ai-studio",
+  "private": true,
+  "version": "0.2.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config portable/vite.config.mjs --host 127.0.0.1",
+    "build": "node portable/build.mjs",
+    "start": "node portable/server.mjs",
+    "preview": "node portable/server.mjs",
+    "test": "node --test portable/tests/*.test.mjs",
+    "test:features": "node tests/conversations-unit.mjs && node tests/chip-lab-unit.mjs && node tests/world-evolution-unit.mjs && node tests/superpowers-unit.mjs && node tests/portable-brain.mjs && node tests/forge-unit.mjs && node tests/superpowers-cli-cancel.mjs"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.17",
+    "fflate": "^0.8.3",
+    "lucide": "^0.469.0",
+    "mermaid": "^11.17.2",
+    "motion": "^12.43.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "playwright": "^1.64.1",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "esbuild": "^0.25.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CartyChris/distill-pets-ai-studio.git"
+  },
+  "description": "A playful OpenRouter agent, workflow, model-chip and generative UI studio.",
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,31 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+const url=process.env.APP_URL||'http://localhost:5190';
+const browser=await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined,args:['--no-sandbox']});
+const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+const requests=[];
+const sse=text=>'data: '+JSON.stringify({choices:[{delta:{content:text,reasoning:'HIDDEN_PRIVATE_SENTINEL'},finish_reason:null}]})+'\n\ndata: '+JSON.stringify({choices:[{delta:{},finish_reason:'stop'}]})+'\n\ndata: [DONE]\n\n';
+async function go(label){const visible=page.getByRole('button',{name:label,exact:true}).filter({visible:true}).first();if(await visible.count())return visible.click();await page.getByRole('button',{name:'All views',exact:true}).filter({visible:true}).first().click();await page.locator('#modal').getByRole('button',{name:label,exact:true}).click();}
+try{
+  await page.addInitScript(()=>{if(window.top!==window||localStorage.getItem('pip-studio-v1'))return;localStorage.setItem('pip-studio-v1',JSON.stringify({version:1,mode:'live',deep:false,agents:{milo:{model:'test/original',chipId:'chip'},nova:{model:'test/student'}},tasks:[{id:'source',prompt:'ORIGINAL_CONVERSATION_TASK',text:'ORIGINAL_APPROVED_ANSWER\n'.repeat(40),agent:'milo',model:'test/original',demo:false,status:'complete',lessonId:'chip'}],lessons:[{id:'chip',title:'Frozen teaching',instructions:'FROZEN_CHIP_INSTRUCTIONS',examples:[{prompt:'Example',completion:'Approved style'}],baseModel:'test/original',teacherModel:'test/original',approved:true,reviewed:true,demo:false}],generation:{brief:'ORIGINAL_WORKSPACE_BRIEF',style:'concise',temperature:0.3}}));});
+  await page.route('**/api/models',r=>r.fulfill({json:{models:[]}}));
+  await page.route('https://openrouter.ai/api/v1/chat/completions',async route=>{requests.push(route.request().postDataJSON());await route.fulfill({status:200,contentType:'text/event-stream',body:sse(requests.length===1?'# A useful reply\n**FIRST_CHAT_RESULT**\n<script>window.PWNED=1</script>':'SECOND_CHAT_RESULT')});});
+  await page.goto(url);await go('Settings');await page.getByLabel('OpenRouter API key',{exact:true}).fill('conversation-key-transport-only');await page.getByRole('button',{name:'Use live OpenRouter',exact:true}).click();
+  await go('Workspace');await page.getByRole('button',{name:'Saved tasks',exact:true}).click();await page.locator('#modal').getByRole('button',{name:'ORIGINAL_CONVERSATION_TASK',exact:true}).click();await page.getByRole('button',{name:'Continue conversation',exact:true}).click();
+  await page.locator('#conversation-input').fill('FIRST_FOLLOW_UP_SENTINEL');await page.getByRole('button',{name:'Send message',exact:true}).click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pip-studio-v1')).conversations.threads[0].messages.at(-1)?.status==='complete');
+  assert.equal(requests.length,1);assert.equal(requests[0].model,'test/original');assert.equal(requests[0].temperature,0.3);
+  const first=JSON.stringify(requests[0].messages);for(const token of ['FROZEN_CHIP_INSTRUCTIONS','ORIGINAL_CONVERSATION_TASK','ORIGINAL_APPROVED_ANSWER','ORIGINAL_WORKSPACE_BRIEF','FIRST_FOLLOW_UP_SENTINEL'])assert.ok(first.includes(token));
+  assert.equal(await page.evaluate(()=>window.PWNED),undefined);assert.equal(await page.locator('.rich-response strong').innerText(),'FIRST_CHAT_RESULT');await page.getByRole('button',{name:'Following live',exact:true}).click();await page.locator('#conversation-feed').evaluate(el=>el.scrollTop=150);const readingPosition=await page.locator('#conversation-feed').evaluate(el=>el.scrollTop);await page.getByRole('button',{name:'Show plain text',exact:true}).click();assert.equal(await page.locator('#conversation-feed').evaluate(el=>el.scrollTop),readingPosition);
+  await page.getByRole('button',{name:'Save as task',exact:true}).click();
+  let db=await page.evaluate(()=>JSON.parse(localStorage.getItem('pip-studio-v1')));assert.ok(db.tasks.some(t=>t.text.includes('FIRST_CHAT_RESULT')&&t.status==='complete'&&!t.approved));
+  await go('Settings');await page.locator('.generation-controls summary').click();await page.locator('#generation-brief').fill('FUTURE_WORKSPACE_BRIEF');await page.locator('#generation-brief').blur();await page.locator('#generation-temperature').selectOption('1');await page.locator('#custom-milo').fill('test/changed');await page.locator('#custom-milo').blur();
+  await go('Conversations');await page.locator('#conversation-input').fill('SECOND_FOLLOW_UP_SENTINEL');await page.getByRole('button',{name:'Send message',exact:true}).click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pip-studio-v1')).conversations.threads[0].messages.at(-1)?.text==='SECOND_CHAT_RESULT');
+  assert.equal(requests.length,2);assert.equal(requests[1].model,'test/original');assert.equal(requests[1].temperature,0.3);const second=JSON.stringify(requests[1].messages);assert.ok(second.includes('FIRST_CHAT_RESULT'));assert.ok(second.includes('ORIGINAL_WORKSPACE_BRIEF'));assert.ok(!second.includes('FUTURE_WORKSPACE_BRIEF'));
+  for(const size of [{width:420,height:912},{width:320,height:568},{width:852,height:393}]){await page.setViewportSize(size);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+  await page.reload();await go('Conversations');await page.getByText('SECOND_CHAT_RESULT',{exact:true}).waitFor();db=await page.evaluate(()=>JSON.parse(localStorage.getItem('pip-studio-v1')));const storage=JSON.stringify(db);assert.ok(!storage.includes('conversation-key-transport-only'));assert.ok(!storage.includes('HIDDEN_PRIVATE_SENTINEL'));
+  await page.locator('#conversation-input').fill('A fresh follow-up after reload');await page.getByRole('button',{name:'Send message',exact:true}).click();await page.getByText('Add your OpenRouter key in Settings to run a live task.',{exact:true}).waitFor();assert.equal(requests.length,2);
+  assert.deepEqual(errors,[]);console.log('PASS: actual streamed multi-turn context, frozen model/chip/profile, rich-text safety, saved result approval boundary, phone layouts, reload persistence and key exclusion.');
+}finally{await browser.close();}

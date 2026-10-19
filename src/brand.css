@@ -1,0 +1,22 @@
+/* A compact, readable wordmark that preserves the existing companion slot. */
+.brand-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.brand .brand-wordmark {
+  display: block;
+  font-size: calc(18px * var(--ui-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.brand-wordmark > span {
+  display: block;
+  margin-top: 5px;
+  color: var(--blue);
+  font-size: 0.67em;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
