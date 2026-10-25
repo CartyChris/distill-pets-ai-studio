@@ -52,3 +52,27 @@ service worker is not installed during Vite development. Provider fixtures use
 fake test keys and intercepted responses; no test requires a real paid API call.
 Tests may write screenshots and reports under `tests/`; generated artifacts are
 excluded from source control.
+
+
+## Teaching Workshop 0.3
+
+`npm run test:features` includes the bounded teacher/student pipeline and
+preference-export checks. `APP_URL=http://localhost:3000 CHROMIUM_PATH=/path/to/chromium node tests/teaching-browser.mjs` exercises the
+integrated real UI using intercepted provider fixtures: live steering and
+returned transcripts, explicit example review, SFT download, immutable chip
+approval, held-out comparisons, single-ZIP preference/provenance export, shared
+development history, reload and key exclusion. It also checks small phone,
+iPhone Air-sized, landscape and desktop layouts. Browser profiles emulate
+viewports; they do not establish physical iOS Safari verification.
+
+The dated independent review records three reproduced and corrected data
+integrity issues. Reforge contract replay covered four new feature families
+with fixed inputs, exact comparisons, deterministic repeat and an executed
+approval-guard mutant that was correctly rejected. This proves the listed
+new design cases, not original-harness whole-app parity. No paid inference
+or hosted model weight training was used for release verification.
+
+`APP_URL=http://localhost:3000 node tests/teaching-playground.mjs` checks the
+actual prepared Playground backend end to end, with no provider interception:
+four distinct stages, no sample training exports, the same public Wilds messages,
+phone fit, and saved state after reload.

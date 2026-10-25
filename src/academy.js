@@ -163,7 +163,7 @@ export function createAcademy(deps = {}) {
   }
 
   function optionalOuting() {
-    return `<details class="academy-details academy-outing"><summary>Want a learning adventure, too?</summary><p>Take a teacher and learner into the Wilds for optional practice in a chosen skill. Watch the lesson unfold together, then review what was useful.</p><p class="help">Outings have their own activity records. This trail follows the teaching task you saved above. A pet adventure does not change hosted model weights.</p>${btn('academy-page', 'Explore the Wilds', 'blue', 'data-page="wilds"')}</details>`;
+    return `<details class="academy-details academy-outing"><summary>Want a learning adventure, too?</summary><p>Take a teacher and learner into the Wilds for optional practice in a chosen skill. Watch the lesson unfold together, then review what was useful.</p><p>For a focused practice loop, open Teaching workshop: the student tries first, the teacher reviews that attempt, and the student revises. Reserve separate validation tasks before you begin.</p><p class="help">Outings have their own activity records. This trail follows the teaching task you saved above. A pet adventure does not change hosted model weights.</p><div class="row">${btn('academy-page', 'Open Teaching workshop', 'blue', 'data-page="teaching"')}${btn('academy-page', 'Explore the Wilds', '', 'data-page="wilds"')}</div></details>`;
   }
 
   function view() {

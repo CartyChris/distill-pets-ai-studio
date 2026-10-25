@@ -64,6 +64,29 @@ preview, a diagram workbench, or a place to build a small library of repeatable
 workflows. The pets make that work visible and fun; you stay in control of what
 gets approved and reused.
 
+## New: a teaching workshop
+
+Open **Teaching workshop** to let the student try first, receive feedback about
+that actual attempt, then revise. Choose one to three practice tasks and reserve
+different validation tasks. The app shows the planned **3–12 calls** before you
+start; an optional teacher reference adds one call per task. Each returned stage
+stays readable, and you can follow the session or send guidance in the Wilds.
+
+Review a revision before approving it. The example basket supports bounded
+JSON/JSONL imports, duplicate checks, approved live training exports, and a
+separate export of reserved validation prompts. Draft a chip from up to three
+approved examples, review its rules, then send reserved tasks to Chip lab.
+
+Chip lab can turn your reviews into feedback for the next immutable revision.
+Those test prompts then become **development data**. Its human-confirmed
+preference export is one ZIP containing response pairs and a provenance report,
+with the different response-generation contexts explicitly recorded.
+
+Read the [workshop guide](docs/teaching-workshop.md), [verification report](docs/research/upgrade-verification.md), or the
+[current source/research review](docs/research/distillation-review-2026-10-24.md).
+These are browser-native workflows inspired by established training and
+optimization tools; the app does not run a GPU trainer or update hosted weights.
+
 ## Run it
 
 Requires Node.js 22 or later.
@@ -96,6 +119,7 @@ supported Android browsers offer their usual install action.
 | Workspace | Complete a task, review its output, and distill an approved example. |
 | Conversations | Continue bounded streamed threads with frozen model/chip settings. |
 | Distillation Trail | Follow five evidence-based steps from a teaching goal to a fresh comparison. |
+| Teaching workshop | Practice, receive teacher feedback, revise, curate examples, and reserve independent validation tasks. |
 | Superpowers | Create custom workflows with instructions, reference data, review layers and exports. |
 | Forge studio | Edit and render Mermaid diagrams; generate safe interactive UI from a component schema. |
 | Wilds / Open World | Send companions on tasks, research, code and nature-walk teaching adventures. |

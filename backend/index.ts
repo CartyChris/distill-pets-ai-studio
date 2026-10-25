@@ -16,6 +16,14 @@ const ORIGIN = 'https://openrouter.ai/api/v1';
 function sample(input: Completion) {
   const prompt =
     input.messages?.filter(m => m.role === 'user').at(-1)?.content || '';
+  if (input.kind === 'learn-reference')
+    return 'Playground teacher demonstration\n\nA rainbow forms when sunlight bends as it enters a raindrop, reflects inside it, and bends again as it leaves. Different colors bend by different amounts. With the sun behind you and rain ahead, many drops send those colors toward your eyes. A prism is a useful comparison, but a raindrop also reflects the light.\n\nTeaching technique: begin with the main idea, explain the mechanism, then state where the analogy stops. This is a prepared sample rather than a fresh answer to your task.';
+  if (input.kind === 'learn-attempt')
+    return 'Playground student first attempt\n\nA rainbow appears when sunlight meets rain. A raindrop acts a little like a tiny prism and spreads white light into colors.\n\nThis sample is intentionally brief so you can inspect the teaching loop. It leaves out the reflection inside the drop and the viewing direction. Real student responses depend on your selected model and task.';
+  if (input.kind === 'learn-feedback')
+    return 'Playground teacher feedback\n\nWhat worked: the first attempt starts simply and uses a concrete comparison.\nWhat needs attention: it omits reflection inside the drop and where the observer stands. A prism alone is not the full mechanism.\nTry this revision: explain bending, internal reflection, and bending again; mention the sun behind the observer; end with a small understanding check.\n\nFor your own task, judge the actual response against your rubric. This prepared feedback illustrates the process; it is not a live quality assessment.';
+  if (input.kind === 'learn-revision')
+    return 'Playground student revision\n\nSunlight looks white, but contains many colors. It bends when it enters a raindrop, reflects inside, and bends again as it leaves. Each color bends a little differently. With the sun behind you and rain in front, many drops can send a colorful arc toward your eyes.\n\nA raindrop is a little like a prism, with an extra reflection inside. Why do you think the sun needs to be behind you?\n\nThis is a prepared revision sample. Review its facts and your task requirements before approving it.';
   if (input.kind === 'forge-diagram')
     return 'flowchart LR\n  A["Choose a skill"] --> B["Teacher example"]\n  B --> C["Review chip"]\n  C --> D["Learner test"]';
   if (input.kind === 'forge-ui')

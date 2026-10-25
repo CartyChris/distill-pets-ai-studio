@@ -49,6 +49,49 @@
 .chip-lab .lab-snapshot summary::before { content: '▸'; margin-right: 8px; }
 .chip-lab .lab-snapshot[open] > summary::before { content: '▾'; }
 .chip-lab .lab-snapshot pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; max-height: 280px; font: inherit; font-size: 12px; line-height: 1.6; }
+.chip-lab .lab-review-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.chip-lab .lab-review-summary span,
+.chip-lab .lab-data-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius, 12px);
+  background: var(--paper2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.chip-lab .lab-data-role {
+  margin-bottom: 12px;
+}
+.chip-lab .lab-review-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.chip-lab .lab-review-actions > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-control-radius, 12px);
+  background: var(--paper2);
+}
+.chip-lab .lab-review-actions button {
+  margin-top: auto;
+}
 .chip-lab :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 @media (max-width: 700px) {
   .chip-lab .lab-response-grid { grid-template-columns: 1fr; }

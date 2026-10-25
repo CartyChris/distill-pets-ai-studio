@@ -17,6 +17,8 @@ import { createSuperpowers, cleanSuperpowers } from './superpowers.js';
 import './superpowers.css';
 import { createForge, cleanForge } from './forge.js';
 import './forge.css';
+import { cleanTeaching, createTeaching, teachingRowPrompts } from './teaching.js';
+import './teaching.css';
 import bundledCatalog from './catalog.json';
 
 const $ = id => document.getElementById(id);
@@ -32,6 +34,18 @@ const uid = () => crypto.randomUUID();
 const STORAGE = 'pip-studio-v1';
 const BASE_PROMPT =
   'You are a helpful task assistant. Complete the requested task with accurate, clear, useful output. Respect the requested audience and format. State uncertainty. Do not claim to browse, run code, send messages, or take actions you cannot actually perform.';
+function cleanChipProvenance(value) {
+  if (!value || value.source !== 'teaching-workshop') return null;
+  const ids = values => Array.isArray(values)
+    ? [...new Set(values.filter(item => typeof item === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(item)))].slice(0, 3)
+    : [];
+  return {
+    source: 'teaching-workshop',
+    rowIds: ids(value.rowIds),
+    runIds: ids(value.runIds),
+    sourcePrompts: Array.isArray(value.sourcePrompts) ? [...new Set(value.sourcePrompts.filter(item => typeof item === 'string'))].slice(0, 36).map(item => item.slice(0, 24000)) : [],
+  };
+}
 const DEFAULTS = () => ({
   version: 1,
   theme: 'light',
@@ -66,6 +80,7 @@ const DEFAULTS = () => ({
   generation: cleanGeneration(null),
   chipLab: cleanChipLab(null),
   superpowers: cleanSuperpowers(null),
+  teaching: cleanTeaching(null),
   forge: cleanForge(null),
   tasks: [],
   lessons: [],
@@ -173,6 +188,7 @@ function navigation(mobile = false) {
     academy: 'Distillation Trail',
     powers: 'Superpowers',
     forge: 'Forge studio',
+    teaching: 'Teaching workshop',
     wilds: 'Wilds',
     adventure: 'Open World',
     code: 'Code studio',
@@ -213,6 +229,7 @@ function render() {
     academy: ['The Distillation Trail', 'Learn a useful trick. Teach a better brain.'],
     powers: ['Your little superpowers', 'Build a useful brain for the work you care about.'],
     forge: ['The Fable Forge', 'Turn a good idea into diagrams and interactive tools.'],
+    teaching: ['The teaching workshop', 'Try a little. Learn together. Keep what works.'],
     wilds: ['Out into the Wilds', 'Useful adventures. Little companions. Real discoveries.'],
     adventure: ['The Living Wilds', 'A whole world of little discoveries.'],
     customize: ['Make Distill Pets AI Studio yours', 'Every color. Every companion. Your kind of magic.'],
@@ -254,7 +271,7 @@ function render() {
       )
       .join('') ||
     '<p class="help" style="padding:0 8px">Your first good idea starts here.</p>'
-  }</div><div class="rail-foot"><span class="mode-dot" style="background:${db.mode === 'demo' ? 'var(--orange)' : 'var(--green)'}"></span>${db.mode === 'demo' ? 'Playground · sample responses' : 'OpenRouter · bring your own key'}<br>Saved in this browser. Yours to export.</div></aside><main class="stage"><header class="stage-head">${mascot(page === 'workspace' ? db.activeAgent : 'nova')}<div class="title"><h1>${titles[page][0]}</h1><p>${titles[page][1]}</p></div><span class="chip">${icon('spark')} ${db.mode === 'demo' ? 'Playground' : key ? 'Key connected' : 'Connect OpenRouter'}</span>${button('views', icon('workspace'), 'icon view-menu', 'aria-label="All views"')}${button('new', icon('plus'), 'icon', 'aria-label="Start a new task"')}</header><div class="page ${page === 'settings' ? 'settings' : ''}">${storageFailed ? '<div class="notice">Browser storage could not be read. Export a backup before closing this tab.</div>' : ''}${visibleError ? `<div class="error" role="alert">${escape(visibleError)}</div>` : ''}${page === 'powers' ? superpowers.view() : page === 'forge' ? forge.view() : page === 'academy' ? academy.view() : page === 'adventure' ? adventure.view() : page === 'wilds' ? wilds.view() : page === 'customize' ? customizer.view() + `<div class="card"><h2>Bring out their personality</h2><p class="help">Choose movement personalities, explanation styles, auras, trails, and emotes for the teacher and student.</p>${button('field-open', 'Personalities & field kit', 'blue')}</div>` : page === 'lab' ? chipLab.view() : page === 'chat' ? conversations.view() : page === 'workspace' ? workspace(a) : page === 'lessons' ? lessonsPage() : page === 'compare' ? comparePage() : page === 'pets' ? petsPage() : ['code', 'live', 'research'].includes(page) ? studio.view(page) : settingsPage()}</div></main>${navigation(true)}</div>`;
+  }</div><div class="rail-foot"><span class="mode-dot" style="background:${db.mode === 'demo' ? 'var(--orange)' : 'var(--green)'}"></span>${db.mode === 'demo' ? 'Playground · sample responses' : 'OpenRouter · bring your own key'}<br>Saved in this browser. Yours to export.</div></aside><main class="stage"><header class="stage-head">${mascot(page === 'workspace' ? db.activeAgent : 'nova')}<div class="title"><h1>${titles[page][0]}</h1><p>${titles[page][1]}</p></div><span class="chip">${icon('spark')} ${db.mode === 'demo' ? 'Playground' : key ? 'Key connected' : 'Connect OpenRouter'}</span>${button('views', icon('workspace'), 'icon view-menu', 'aria-label="All views"')}${button('new', icon('plus'), 'icon', 'aria-label="Start a new task"')}</header><div class="page ${page === 'settings' ? 'settings' : ''}">${storageFailed ? '<div class="notice">Browser storage could not be read. Export a backup before closing this tab.</div>' : ''}${visibleError ? `<div class="error" role="alert">${escape(visibleError)}</div>` : ''}${page === 'teaching' ? teaching.view() : page === 'powers' ? superpowers.view() : page === 'forge' ? forge.view() : page === 'academy' ? academy.view() : page === 'adventure' ? adventure.view() : page === 'wilds' ? wilds.view() : page === 'customize' ? customizer.view() + `<div class="card"><h2>Bring out their personality</h2><p class="help">Choose movement personalities, explanation styles, auras, trails, and emotes for the teacher and student.</p>${button('field-open', 'Personalities & field kit', 'blue')}</div>` : page === 'lab' ? chipLab.view() : page === 'chat' ? conversations.view() : page === 'workspace' ? workspace(a) : page === 'lessons' ? lessonsPage() : page === 'compare' ? comparePage() : page === 'pets' ? petsPage() : ['code', 'live', 'research'].includes(page) ? studio.view(page) : settingsPage()}</div></main>${navigation(true)}</div>`;
   const dock = root.querySelector('.mobile-nav');
   if (dock) {
     dock.scrollLeft = navScroll;
@@ -279,7 +296,7 @@ function demoNotice() {
 }
 function workspace(a) {
   const t = activeTask();
-  return `${demoNotice()}${db.tasks.length ? `<div class="row" style="margin-bottom:16px">${button('history', `${icon('workspace')} Saved tasks (${db.tasks.length})`, '', 'aria-label="Saved tasks"')}</div>` : ''}${!t ? `<section class="welcome"><div><span class="eyebrow">A small team with growing ideas</span><h2>One does the work.<br>The other learns the magic.</h2><p>Give Milo a task. Love the result? Distill a model chip, then equip it on any companion. A little better, together.</p><div class="row">${button('connect', `${icon('spark')} Connect OpenRouter`, 'primary')}${button('demo', 'Try the playground')}${button('page', 'Learn distillation', 'blue', 'data-page="academy"')}${button('page', 'Explore the Wilds', '', 'data-page="wilds"')}</div></div><div class="welcome-art"><span class="art-note">“Teach me that trick!”</span><div class="big-mascot">${mascot('milo', true)}</div><span style="color:var(--muted)">${icon('arrow')}</span><div class="big-mascot">${mascot('nova', true)}</div></div></section><div class="steps"><div class="step"><b>1</b>Give a task</div><div class="step"><b>2</b>Love the result</div><div class="step"><b>3</b>Pass it on</div></div><div class="two">${agentCard('milo')}${agentCard('nova')}</div>` : `<section class="thread"><div class="message user"><div class="bubble"><div class="message-meta"><b>You</b></div><p class="output">${escape(t.prompt)}</p></div></div>${t.text ? `<div class="message">${mascot(t.agent)}<div class="bubble"><div class="message-meta"><b>${escape(db.agents[t.agent].name)}${t.demo ? ' · Playground sample' : ''}</b><small>${escape(t.model)} · ${Math.round(t.elapsed / 1000)}s</small></div>${t.status === 'draft' ? '<p class="notice">First draft preserved · the quality pass did not finish. Review it before teaching.</p>' : ''}<pre class="output">${escape(t.text)}</pre>${t.truncated ? '<p class="help">Output limit reached. Increase the limit in Settings or ask a shorter task.</p>' : ''}<div class="message-actions">${button('teach', `${icon('spark')} ${t.approved ? 'Distill another chip' : 'Distill model chip'}`, 'blue', `data-id="${t.id}" aria-label="${t.approved ? 'Distill another chip' : 'Distill model chip'}" ${busy ? 'disabled' : ''}`)}${button('copy', 'Copy response', '', `data-id="${t.id}"`)}${button('chat-from-task', 'Continue conversation', '', `data-id="${t.id}" ${busy ? 'disabled' : ''}`)}${button('task-export','Export response','',`data-id="${t.id}"`)}${button('retry', 'Run again', '', busy ? 'disabled' : '')}</div>${t.usage ? `<p class="help">${t.draftUsage ? 'Final pass: ' : ''}${escape(usageText(t.usage))}${t.draftUsage ? '<br>Draft pass: ' + escape(usageText(t.draftUsage)) : ''}</p>` : ''}</div></div>` : ''}${t.error ? `<div class="error">${escape(t.error)} ${button('retry', 'Retry task', '', busy ? 'disabled' : '')}</div>` : ''}</section>`}${busy ? `<div class="progress" role="status">${mascot(db.activeAgent)}<div><b>${escape(progress)}</b><br><small>You can keep exploring while your agent works.</small></div>${button('stop', 'Stop', '', 'style="margin-left:auto"')}</div>` : ''}${generationControls()}<form id="task-form" class="compose"><label class="label" for="task-input">A task for ${escape(a.name)}</label><textarea id="task-input" aria-label="Your task" placeholder="What would you like us to work on?" maxlength="30000" ${busy ? 'disabled' : ''}>${escape(draft)}</textarea><div class="row"><label class="check"><input id="deep-work" type="checkbox" ${db.deep ? 'checked' : ''}>${icon('spark')} Deep work</label><small>${db.deep ? 'Draft + quality pass · 2 model calls' : 'One focused model call'}</small>${button('send', `${icon('send')} Send task`, 'primary send', `type="submit" aria-label="Send task" ${busy ? 'disabled' : ''}`)}</div></form>${!t ? `<div class="prompt-chips">${button('prompt', 'Explain a tricky idea', '', 'data-prompt="Explain how a rainbow forms to a curious child."')}${button('prompt', 'Write with warmth', '', 'data-prompt="Write a warm, concise welcome email for a new community member."')}${button('prompt', 'Make a plan', '', 'data-prompt="Make a practical, seven-day plan for learning the basics of JavaScript."')}</div>` : ''}<p class="help" style="text-align:center;margin-top:13px">${escape(a.name)} works with text tasks. Check important results. Equip a distilled model chip to use its learned approach.</p>`;
+  return `${demoNotice()}${db.tasks.length ? `<div class="row" style="margin-bottom:16px">${button('history', `${icon('workspace')} Saved tasks (${db.tasks.length})`, '', 'aria-label="Saved tasks"')}</div>` : ''}${!t ? `<section class="welcome"><div><span class="eyebrow">A small team with growing ideas</span><h2>One does the work.<br>The other learns the magic.</h2><p>Give Milo a task. Love the result? Distill a model chip, then equip it on any companion. A little better, together.</p><div class="row">${button('connect', `${icon('spark')} Connect OpenRouter`, 'primary')}${button('demo', 'Try the playground')}${button('page', 'Learn distillation', 'blue', 'data-page="academy"')}${button('page', 'Explore the Wilds', '', 'data-page="wilds"')}</div></div><div class="welcome-art"><span class="art-note">“Teach me that trick!”</span><div class="big-mascot">${mascot('milo', true)}</div><span style="color:var(--muted)">${icon('arrow')}</span><div class="big-mascot">${mascot('nova', true)}</div></div></section><div class="steps"><div class="step"><b>1</b>Give a task</div><div class="step"><b>2</b>Love the result</div><div class="step"><b>3</b>Pass it on</div></div><div class="two">${agentCard('milo')}${agentCard('nova')}</div>` : `<section class="thread"><div class="message user"><div class="bubble"><div class="message-meta"><b>You</b></div><p class="output">${escape(t.prompt)}</p></div></div>${t.text ? `<div class="message">${mascot(t.agent)}<div class="bubble"><div class="message-meta"><b>${escape(db.agents[t.agent].name)}${t.demo ? ' · Playground sample' : ''}</b><small>${escape(t.model)} · ${Math.round(t.elapsed / 1000)}s</small></div>${t.status === 'draft' ? '<p class="notice">First draft preserved · the quality pass did not finish. Review it before teaching.</p>' : ''}<pre class="output">${escape(t.text)}</pre>${t.truncated ? '<p class="help">Output limit reached. Increase the limit in Settings or ask a shorter task.</p>' : ''}<div class="message-actions">${button('teach', `${icon('spark')} ${t.approved ? 'Distill another chip' : 'Distill model chip'}`, 'blue', `data-id="${t.id}" aria-label="${t.approved ? 'Distill another chip' : 'Distill model chip'}" ${busy ? 'disabled' : ''}`)}${button('copy', 'Copy response', '', `data-id="${t.id}"`)}${button('chat-from-task', 'Continue conversation', '', `data-id="${t.id}" ${busy ? 'disabled' : ''}`)}${button('task-export','Export response','',`data-id="${t.id}"`)}${button('practice-task','Practice with the student','',`data-id="${t.id}" ${busy ? 'disabled' : ''}`)}${button('retry', 'Run again', '', busy ? 'disabled' : '')}</div>${t.usage ? `<p class="help">${t.draftUsage ? 'Final pass: ' : ''}${escape(usageText(t.usage))}${t.draftUsage ? '<br>Draft pass: ' + escape(usageText(t.draftUsage)) : ''}</p>` : ''}</div></div>` : ''}${t.error ? `<div class="error">${escape(t.error)} ${button('retry', 'Retry task', '', busy ? 'disabled' : '')}</div>` : ''}</section>`}${busy ? `<div class="progress" role="status">${mascot(db.activeAgent)}<div><b>${escape(progress)}</b><br><small>You can keep exploring while your agent works.</small></div>${button('stop', 'Stop', '', 'style="margin-left:auto"')}</div>` : ''}${generationControls()}<form id="task-form" class="compose"><label class="label" for="task-input">A task for ${escape(a.name)}</label><textarea id="task-input" aria-label="Your task" placeholder="What would you like us to work on?" maxlength="30000" ${busy ? 'disabled' : ''}>${escape(draft)}</textarea><div class="row"><label class="check"><input id="deep-work" type="checkbox" ${db.deep ? 'checked' : ''}>${icon('spark')} Deep work</label><small>${db.deep ? 'Draft + quality pass · 2 model calls' : 'One focused model call'}</small>${button('send', `${icon('send')} Send task`, 'primary send', `type="submit" aria-label="Send task" ${busy ? 'disabled' : ''}`)}</div></form>${!t ? `<div class="prompt-chips">${button('prompt', 'Explain a tricky idea', '', 'data-prompt="Explain how a rainbow forms to a curious child."')}${button('prompt', 'Write with warmth', '', 'data-prompt="Write a warm, concise welcome email for a new community member."')}${button('prompt', 'Make a plan', '', 'data-prompt="Make a practical, seven-day plan for learning the basics of JavaScript."')}</div>` : ''}<p class="help" style="text-align:center;margin-top:13px">${escape(a.name)} works with text tasks. Check important results. Equip a distilled model chip to use its learned approach.</p>`;
 }
 function agentCard(id) {
   const a = db.agents[id];
@@ -828,6 +845,7 @@ function validateBackup(x) {
       reviewed: !!l.reviewed,
       created: Number(l.created) || Date.now(),
       feedback: String(l.feedback || '').slice(0, 2000),
+      provenance: cleanChipProvenance(l.provenance),
       demo: !!l.demo,
     };
   });
@@ -879,6 +897,7 @@ function validateBackup(x) {
     : [];
   fresh.chipLab = cleanChipLab(x.chipLab);
   fresh.superpowers = cleanSuperpowers(x.superpowers);
+  fresh.teaching = cleanTeaching(x.teaching);
   fresh.forge = cleanForge(x.forge);
   fresh.conversations = cleanConversations(x.conversations);
   fresh.generation = cleanGeneration(x.generation);
@@ -937,7 +956,22 @@ async function onAction(event) {
   if (!el || el.disabled) return;
   const action = el.dataset.action;
   if (action === 'send') return;
-  if (action.startsWith('lab-')) { const result=await chipLab.action(action,el.dataset);if(action==='lab-vote')recordLabReview(el.dataset);return result; }
+  if (action.startsWith('lab-')) {
+    const result = await chipLab.action(action, el.dataset);
+    if (action === 'lab-vote') recordLabReview(el.dataset);
+    if (action === 'lab-learn-review' || action === 'lab-preferences-confirm') {
+      const prompts = db.chipLab.runs.filter(run => !!run.demo === (db.mode === 'demo'))
+        .flatMap(run => run.cases.filter(item => item.role === 'development').map(item => item.prompt));
+      teaching.markDevelopment?.(prompts);
+    }
+    return result;
+  }
+  if (action.startsWith('learn-')) return teaching.action(action, el.dataset);
+  if (action === 'practice-task') {
+    const task = db.tasks.find(item => item.id === el.dataset.id);
+    if (!busy && task && teaching.seedFromTask(task)) { page = 'teaching'; render(); }
+    return;
+  }
   if (action.startsWith('power-')) return superpowers.action(action, el.dataset);
   if (action.startsWith('forge-')) return forge.action(action, el.dataset);
   if (action.startsWith('chat-')) return conversations.action(action, el.dataset);
@@ -1027,6 +1061,7 @@ async function onAction(event) {
     if (db.studio.lastRun) stopGuidance(db.adventure, db.studio.lastRun.id);
     conversations.stop();
     chipLab.stop?.();
+    teaching.stop();
     superpowers.stop?.();
     forge.stop?.();
     studio.cancel();
@@ -1243,6 +1278,7 @@ document.addEventListener('submit', e => {
   }
 });
 document.addEventListener('input', e => {
+  if (teaching.input(e.target)) return;
   if (superpowers.input(e.target)) return;
   if (forge.input(e.target)) return;
   if (chipLab.input(e.target)) return;
@@ -1260,6 +1296,8 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t.id === 'learn-import-file') { teaching.importData(t.files?.[0]).catch(error => toast(getError(error))); t.value = ''; return; }
+  if (teaching.change(t)) return;
   if (t.id === 'power-import-file') { superpowers.importData(t.files?.[0]).catch(error => toast(getError(error))); return; }
   if (superpowers.change(t)) return;
   if (forge.change(t)) return;
@@ -1416,7 +1454,10 @@ const customizer = createCustomizer({ getDB:()=>db, escape, button, icon, mascot
 const wilds = createWilds({ getDB:()=>db, escape, button, icon, mascot, save, render, toast, openModal, getBusy:()=>busy, setPage:v=>{page=v;render();}, startExpedition, openExpedition:record=>{if(['code','research'].includes(record.kind) && record.runId === db.studio.lastRun?.id){page=record.kind;render();}else if(record.taskId && db.tasks.some(t=>t.id===record.taskId)){selectedTask=record.taskId;page='workspace';render();}else if(record.runId === db.studio.lastRun?.id){page='live';render();}else{openModal(`<h2 id="modal-title">Saved outing journal</h2><p class="help">This outing’s output excerpt is preserved. The studio currently contains a later project.</p><pre class="output">${escape(record.text)}</pre>${button('close','Back to the trail')}`);}}, teachExpedition:async record=>{if(record.taskId){teachDialog(record.taskId);}else if(record.runId === db.studio.lastRun?.id){await studio.action('studio-learn', {});}else{toast('Open this outing’s journal. Its recorded resources stay saved; generate a fresh run to distill a new chip.');}}, interact:(id,action)=>interact(id,action) });
 
 function worldOuting() {
-  return db.wilds.records.find(r=>r.id===(activeExpedition||db.wilds.selected)) || db.wilds.records.at(-1) || null;
+  const workshop = teaching.getOuting();
+  const expedition = db.wilds.records.find(record => record.id === (activeExpedition || db.wilds.selected)) || db.wilds.records.at(-1);
+  if (workshop && (workshop.status === 'running' || !expedition || workshop.started > expedition.started)) return workshop;
+  return expedition || null;
 }
 function refreshFieldKit() {
   if(modal.open && modal.querySelector('.field-kit')) { modal.innerHTML=`${button('close','×','close','aria-label="Close dialog"')}<h2 id="modal-title">Personalities & field kit</h2>${fieldKit.view()}`;paintPets(); }
@@ -1425,6 +1466,14 @@ function refreshFieldKit() {
 }
 async function guideWorld(message, target) {
   const r=worldOuting();
+  if (busy && teaching.getOuting()?.status === 'running') {
+    const run = teaching.getOuting();
+    queueGuidance(db.adventure, { runId: run.id, text: message, target });
+    save();
+    adventure.refresh();
+    toast('Guidance queued for the next teacher or student step.');
+    return;
+  }
   if(busy) {
     const run=db.studio.lastRun;
     if(!r || run?.id!==r.runId || run.status!=='running') throw Error('This request is not accepting live guidance. Start a streaming outing in Open World.');
@@ -1441,7 +1490,7 @@ ${message}` : message;
   await startExpedition('task',goal,agent,{streaming:true,page:'adventure',dialogue:db.adventure.dialogue,skill:db.adventure.skill||message.slice(0,100),biome:db.adventure.biome});
 }
 const fieldKit = createFieldKit({getDB:()=>db,escape,button,icon,mascot,save,render:refreshFieldKit,toast,getBusy:()=>busy,emote:(id,kind)=>adventure.emote(id,kind)});
-const adventure = createAdventure({getDB:()=>db,getAgents:()=>Object.fromEntries(['milo','nova'].map(id=>[id,{...db.agents[id],mood:moods[id]}])),getOuting:worldOuting,escape,button,icon,mascot,save,paintPets,render,toast,openModal,fieldKit,getBusy:()=>busy,getError:()=>visibleError,hasKey:()=>!!key,setPage:v=>{page=v;visibleError='';render();},setDemo:()=>{if(!busy){db.mode='demo';save();}},launch:startExpedition,guide:guideWorld,teach:async r=>{if(r.taskId)teachDialog(r.taskId);else if(r.runId===db.studio.lastRun?.id)await studio.action('studio-learn',{});},openResult:r=>{if(r.taskId&&db.tasks.some(t=>t.id===r.taskId)){selectedTask=r.taskId;page='workspace';render();}else if(r.runId===db.studio.lastRun?.id){page=r.kind==='code'?'code':r.kind==='research'?'research':'live';render();}else{openModal(`<h2 id="modal-title">Saved outing result</h2><pre class="output">${escape(r.text||'No output was returned.')}</pre>${button('close','Back to the world')}`);}}});
+const adventure = createAdventure({getDB:()=>db,getAgents:()=>Object.fromEntries(['milo','nova'].map(id=>[id,{...db.agents[id],mood:moods[id]}])),getOuting:worldOuting,escape,button,icon,mascot,save,paintPets,render,toast,openModal,fieldKit,getBusy:()=>busy,getError:()=>visibleError,hasKey:()=>!!key,setPage:v=>{page=v;visibleError='';render();},setDemo:()=>{if(!busy){db.mode='demo';save();}},launch:startExpedition,guide:guideWorld,teach:async r=>{if(r.workshop){page='teaching';render();}else if(r.taskId)teachDialog(r.taskId);else if(r.runId===db.studio.lastRun?.id)await studio.action('studio-learn',{});},openResult:r=>{if(r.workshop){page='teaching';render();}else if(r.taskId&&db.tasks.some(t=>t.id===r.taskId)){selectedTask=r.taskId;page='workspace';render();}else if(r.runId===db.studio.lastRun?.id){page=r.kind==='code'?'code':r.kind==='research'?'research':'live';render();}else{openModal(`<h2 id="modal-title">Saved outing result</h2><pre class="output">${escape(r.text||'No output was returned.')}</pre>${button('close','Back to the world')}`);}}});
 
 function recordLabReview(data) {
   const run=db.chipLab.runs.find(r=>r.id===data.runId),row=run?.cases.find(c=>c.id===data.caseId);
@@ -1494,6 +1543,11 @@ function createToolChip(result) {
     toast('This teaching example is too large or incomplete. Export its run report and shorten the source context first.');
     return null;
   }
+  const parent = result.parentId ? db.lessons.find(item => item.id === result.parentId && !!item.demo === !!result.demo) : null;
+  if (result.parentId && (!parent || parent.revision >= 99)) {
+    toast('Choose an existing parent from this mode with room for a new revision.');
+    return null;
+  }
   const chip = {
     id: uid(), title: String(result.title || 'Custom superpower').slice(0, 80),
     instructions: result.instructions,
@@ -1502,7 +1556,13 @@ function createToolChip(result) {
       completion: example.completion,
     })),
     baseModel: result.baseModel, teacherModel: String(result.teacherModel || result.baseModel).slice(0, 200),
-    revision: 1, parentId: null, created: Date.now(), demo: !!result.demo,
+    revision: parent ? parent.revision + 1 : 1, parentId: parent?.id || null, created: Date.now(), demo: !!result.demo,
+    feedback: String(result.feedback || '').slice(0, 2000),
+    provenance: cleanChipProvenance(result.provenance?.source === 'teaching-workshop' ? {
+      ...result.provenance,
+      runIds: db.teaching.rows.filter(row => result.provenance.rowIds?.includes(row.id)).map(row => row.runId),
+      sourcePrompts: db.teaching.rows.filter(row => result.provenance.rowIds?.includes(row.id)).flatMap(teachingRowPrompts),
+    } : null),
     approved: false, reviewed: false,
   };
   db.lessons.push(chip);
@@ -1534,6 +1594,30 @@ const toolDeps = {
 };
 const superpowers = createSuperpowers(toolDeps);
 const forge = createForge(toolDeps);
+const teaching = createTeaching({
+  ...toolDeps,
+  setMood: (agent, mood) => { moods[agent] = mood; paintPets(); },
+  takeGuidance: (runId, role) => takeGuidance(db.adventure, runId, role),
+  finish: (agent, op, success) => {
+    const run = teaching.getOuting();
+    if (run) settleGuidance(db.adventure, run.id);
+    finish(agent, op, success);
+  },
+  openLab: ({ chipId, cases }) => {
+    if (busy) return toast('Finish or stop the current operation first.');
+    const chip = db.lessons.find(item => item.id === chipId);
+    if (!chip?.approved || !chip.reviewed || !!chip.demo !== (db.mode === 'demo')) return toast('Review and approve a chip from this mode first.');
+    const valid = cases.filter(item => typeof item.prompt === 'string' && item.prompt.trim()).slice(0, 3);
+    if (!valid.length) return toast('Reserve at least one fresh validation task first.');
+    db.chipLab.selectedChip = chip.id;
+    db.chipLab.mode = db.mode;
+    db.chipLab.cases = valid.map(item => ({ id: uid(), prompt: item.prompt.slice(0, 12000), rubric: String(item.rubric || '').slice(0, 2000) }));
+    page = 'lab';
+    visibleError = '';
+    save();
+    render();
+  },
+});
 
 const conversations = createConversations({getDB:()=>db,escape,button,save,render,toast,openModal,download,getBusy:()=>busy,ready,start,finish,currentOp:()=>operation,studentMessages,lesson,stream:(...args)=>studio.stream(...args),setPage:v=>{page=v;visibleError='';render();},openTask:id=>{selectedTask=id;page='workspace';render();}});
 

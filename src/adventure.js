@@ -225,7 +225,7 @@ export function createAdventure(d) {
       'A whole world of little “aha!” moments.';
     root.querySelector('[data-world-status]').textContent =
       r?.status === 'running'
-        ? (run?.phase || 'The team is working…').replaceAll('-', ' ')
+        ? (run?.phase || r?.phase || 'The team is working…').replaceAll('-', ' ')
         : r?.status === 'complete'
           ? 'Back at camp. Review what the team brought home.'
           : r?.status === 'failed'

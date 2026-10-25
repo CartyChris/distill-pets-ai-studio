@@ -1,3 +1,6 @@
+import { zipSync, strToU8 } from 'fflate';
+import { normalizeTeachingPrompt, teachingPromptParts } from './teaching.js';
+
 const MAX_CASES = 3, MAX_RUNS = 8, MAX_OUTPUT = 24000;
 const MODEL = /^[a-zA-Z0-9._:/@+-]{1,200}$/;
 const ID = /^[a-zA-Z0-9-]{1,80}$/;
@@ -7,6 +10,77 @@ const model = value => typeof value === 'string' && MODEL.test(value) ? value : 
 const one = (value, values, fallback) => values.includes(value) ? value : fallback;
 const uid = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'lab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
 const cleanStatus = value => value === 'running' ? 'stopped' : one(value, ['pending', 'complete', 'failed', 'stopped'], 'pending');
+
+// A conservative duplicate check, not a semantic similarity or leakage score.
+export function normalizeLabPrompt(value) {
+  return normalizeTeachingPrompt(value)
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .trim()
+    .replace(/\s+/gu, ' ')
+    .toLocaleLowerCase('en-US');
+}
+
+function preferredSide(row) {
+  if (!['A', 'B'].includes(row?.preference)) return '';
+  const first = row.order === 'learned-first' ? 'learned' : 'baseline';
+  return row.preference === 'A' ? first : first === 'learned' ? 'baseline' : 'learned';
+}
+
+function preferenceCases(run) {
+  if (!run || run.demo !== false || !model(run.baseModel) ||
+      !run.setup?.baselineSystem?.trim() || run.setup.chip?.demo !== false) return [];
+  return (Array.isArray(run.cases) ? run.cases : []).filter(row => {
+    const outputs = [row?.baseline, row?.learned];
+    return !!row?.prompt?.trim() && !!preferredSide(row) &&
+      outputs.every(output => output?.status === 'complete' &&
+        !output.truncated && !output.error && !!output.text?.trim() &&
+        output.text.length <= MAX_OUTPUT) &&
+      row.baseline.text.trim() !== row.learned.text.trim();
+  });
+}
+
+export function preferenceRows(run) {
+  return preferenceCases(run).map(row => {
+    const chosen = preferredSide(row);
+    const rejected = chosen === 'learned' ? 'baseline' : 'learned';
+    return {
+      prompt: [
+        { role: 'system', content: run.setup.baselineSystem },
+        { role: 'user', content: row.prompt },
+      ],
+      chosen: [{ role: 'assistant', content: row[chosen].text }],
+      rejected: [{ role: 'assistant', content: row[rejected].text }],
+    };
+  });
+}
+
+export function preferenceManifest(run) {
+  return {
+    format: 'distill-pets-response-preferences-v1',
+    review: 'Explicit human A/B preferences; no automated quality score.',
+    contextCaveat: 'Responses were generated with different instruction contexts. ' +
+      'JSONL uses the common baseline system and task, without the chip or its examples. ' +
+      'Review this context difference before using an external preference trainer.',
+    scope: 'Response preference data only; no model training is executed here.',
+    runId: run?.id || '',
+    baseModel: run?.baseModel || '',
+    chipId: run?.chipId || '',
+    setup: run?.setup || null,
+    pairs: preferenceCases(run).map(row => ({
+      caseId: row.id,
+      prompt: row.prompt,
+      rubric: row.rubric,
+      preference: row.preference,
+      chosenSide: preferredSide(row),
+      role: row.role === 'development' ? 'development' : 'holdout',
+      notes: row.notes,
+    })),
+  };
+}
+
 function result(value) {
   const x = value && typeof value === 'object' ? value : {};
   return { text: text(x.text, MAX_OUTPUT), status: cleanStatus(x.status), truncated: !!x.truncated || typeof x.text === 'string' && x.text.length > MAX_OUTPUT,
@@ -53,6 +127,7 @@ export function cleanChipLab(value) {
       status: cleanStatus(r.status), error: text(r.error, 600), setup:setup(r.setup),
       cases: Array.isArray(r.cases) ? r.cases.slice(0, MAX_CASES).filter(c => c && id(c.id)).map(c => ({
         id: id(c.id), prompt: text(c.prompt, 12000), rubric: text(c.rubric, 2000),
+        role: c.role === 'development' ? 'development' : 'holdout',
         baseline: result(c.baseline), learned: result(c.learned),
         order: c.order === 'learned-first' ? 'learned-first' : 'baseline-first',
         preference: one(c.preference, ['A', 'B', 'tie'], ''), notes: text(c.notes, 3000), revealed: !!c.revealed,
@@ -99,7 +174,7 @@ export function createChipLab(d) {
     return `<option value="">${empty}</option>${items.map(l => `<option value="${h(l.id)}" ${l.id === current ? 'selected' : ''}>${h(l.title)} · r${l.revision || 1}</option>`).join('')}`;
   }
   function caseFields(c, n) {
-    return `<fieldset class="lab-case"><legend>Fresh task ${n + 1}</legend><label for="lab-prompt-${h(c.id)}">Held-out task</label><textarea id="lab-prompt-${h(c.id)}" data-lab-case="${h(c.id)}" data-lab-field="prompt" maxlength="12000" placeholder="Use a new task the chip has not seen…" ${d.getBusy() ? 'disabled' : ''}>${h(c.prompt)}</textarea><label for="lab-rubric-${h(c.id)}">What will you look for?</label><textarea id="lab-rubric-${h(c.id)}" data-lab-case="${h(c.id)}" data-lab-field="rubric" maxlength="2000" placeholder="Accuracy, clear steps, a useful example…" ${d.getBusy() ? 'disabled' : ''}>${h(c.rubric)}</textarea>${state().cases.length > 1 ? btn('lab-remove-case', 'Remove task', '', `data-case-id="${h(c.id)}" ${d.getBusy() ? 'disabled' : ''}`) : ''}</fieldset>`;
+    return `<fieldset class="lab-case"><legend>Test task ${n + 1}</legend><label for="lab-prompt-${h(c.id)}">Held-out task</label><textarea id="lab-prompt-${h(c.id)}" data-lab-case="${h(c.id)}" data-lab-field="prompt" maxlength="12000" placeholder="Use a new task the chip has not seen…" ${d.getBusy() ? 'disabled' : ''}>${h(c.prompt)}</textarea>${usedForDevelopment(c.prompt) ? '<p class="lab-note">This prompt was already used for learning. It can measure development progress; choose a fresh task for a final held-out test.</p>' : ''}<label for="lab-rubric-${h(c.id)}">What will you look for?</label><textarea id="lab-rubric-${h(c.id)}" data-lab-case="${h(c.id)}" data-lab-field="rubric" maxlength="2000" placeholder="Accuracy, clear steps, a useful example…" ${d.getBusy() ? 'disabled' : ''}>${h(c.rubric)}</textarea>${state().cases.length > 1 ? btn('lab-remove-case', 'Remove task', '', `data-case-id="${h(c.id)}" ${d.getBusy() ? 'disabled' : ''}`) : ''}</fieldset>`;
   }
   function responseView(r, label, setup) {
     return `<article class="lab-response"><span class="eyebrow">Response ${label}${setup ? ' · ' + setup : ''}</span><pre>${h(r.text || (r.status === 'running' ? 'The model is working…' : r.status === 'pending' ? 'Not run yet.' : 'No response returned.'))}</pre>${r.error ? `<p class="error">${h(r.error)}</p>` : ''}${r.truncated ? '<p class="lab-note">Partial or excerpted response. Review this limit before judging the result.</p>' : ''}<small>${h(r.status)}${r.elapsed ? ' · ' + Math.round(r.elapsed / 1000) + 's' : ''}</small></article>`;
@@ -109,12 +184,80 @@ export function createChipLab(d) {
     const {chip,profile} = run.setup;
     return `<details class="lab-snapshot"><summary>Frozen experiment setup · revision ${chip.revision}</summary><p class="lab-note">This snapshot stays with the report if the library chip is edited or deleted. The A/B mapping stays hidden until you reveal it for each task.</p><p class="lab-note">Temperature ${profile.temperature} · ${profile.maxTokens} output tokens · ${h(profile.style)} · ${h(profile.format)} · ${h(profile.voice)} voice</p>${profile.brief ? `<p class="lab-note"><b>Workspace brief:</b> ${h(profile.brief)}</p>` : ''}<b>Chip instructions used</b><pre>${h(chip.instructions)}</pre><p class="lab-note">${chip.examples.length} teaching examples supplied${chip.examplesExcerpted ? ' · excerpts used to fit the context budget' : ''}.</p>${chip.examples.map((e,n)=>`<details><summary>Frozen example ${n+1}</summary><pre>${h(e.prompt)}\n\n${h(e.completion)}</pre></details>`).join('')}</details>`;
   }
+  function reviewedCases(run) {
+    return run.cases.filter(row =>
+      row.baseline.status === 'complete' && row.learned.status === 'complete' &&
+      !row.baseline.truncated && !row.learned.truncated &&
+      !row.baseline.error && !row.learned.error &&
+      row.baseline.text.trim() && row.learned.text.trim() &&
+      (row.preference || row.notes.trim()),
+    );
+  }
+  function usedForDevelopment(prompt, demo = isDemo()) {
+    const normalized = normalizeLabPrompt(prompt);
+    return !!normalized && state().runs.some(run => !!run.demo === demo &&
+      run.cases.some(row => row.role === 'development' &&
+        normalizeLabPrompt(row.prompt) === normalized));
+  }
+  function markDevelopment(rows, demo) {
+    const prompts = new Set(rows.map(row => normalizeLabPrompt(row.prompt)));
+    for (const saved of state().runs) {
+      if (!!saved.demo !== demo) continue;
+      for (const row of saved.cases) {
+        if (prompts.has(normalizeLabPrompt(row.prompt))) row.role = 'development';
+      }
+    }
+  }
   function runView(run) {
-    return `<section class="card lab-report"><div class="lab-row"><h2>Review the two approaches</h2><span class="chip">${h(run.status)}</span></div><p class="help">${h(run.baseModel)} · ${h(run.chipTitle)}${run.demo ? ' · Playground samples' : ''}<br>A/B order is shuffled per task. Judge the task and your rubric before revealing the setup. There is no automatic quality score.</p>${setupView(run)}${run.error ? `<p class="error" role="alert">${h(run.error)}</p>` : ''}${run.cases.map(c => {
-      const order = c.order === 'learned-first' ? ['learned', 'baseline'] : ['baseline', 'learned'];
-      const canReview = c.baseline.status === 'complete' && c.learned.status === 'complete';
-      return `<article class="lab-reviewed-case"><h3>${h(c.prompt)}</h3><p class="lab-note"><b>Your rubric:</b> ${h(c.rubric || 'No rubric supplied. Review accuracy and usefulness for this task.')}</p><div class="lab-response-grid">${order.map((side, n) => responseView(c[side], n ? 'B' : 'A', c.revealed ? side === 'learned' ? 'with chip' : 'base model' : '')).join('')}</div><fieldset class="lab-votes"><legend>Your preference</legend>${[['A', 'Prefer A'], ['B', 'Prefer B'], ['tie', 'About the same']].map(([value, label]) => btn('lab-vote', label, c.preference === value ? 'blue' : '', `data-run-id="${h(run.id)}" data-case-id="${h(c.id)}" data-vote="${value}" aria-pressed="${c.preference === value}" ${!canReview ? 'disabled' : ''}`)).join('')}${btn('lab-reveal', c.revealed ? 'Setup revealed' : 'Reveal A/B setup', '', `data-run-id="${h(run.id)}" data-case-id="${h(c.id)}" ${!canReview || c.revealed ? 'disabled' : ''}`)}</fieldset><label for="lab-notes-${h(run.id)}-${h(c.id)}">Review notes</label><textarea id="lab-notes-${h(run.id)}-${h(c.id)}" data-lab-run="${h(run.id)}" data-lab-case="${h(c.id)}" maxlength="3000" placeholder="What worked? What should the next revision improve?">${h(c.notes)}</textarea></article>`;
-    }).join('')}<div class="lab-row">${btn('lab-export', 'Export experiment report', '', `data-run-id="${h(run.id)}"`)}<span class="help">Includes the setup, returned text, rubric, and your reviews.</span></div></section>`;
+    const eligible = preferenceRows(run).length;
+    const reviewed = reviewedCases(run).length;
+    const busy = d.getBusy();
+    const sameMode = !!run.demo === isDemo();
+    const development = run.cases.filter(row => row.role === 'development').length;
+    return `<section class="card lab-report">
+      <div class="lab-row"><h2>Review the two approaches</h2><span class="chip">${h(run.status)}</span></div>
+      <p class="help">${h(run.baseModel)} · ${h(run.chipTitle)}${run.demo ? ' · Playground samples' : ''}<br>
+        A/B order is shuffled per task. Judge the task and your rubric before revealing the setup.
+        There is no automatic quality score.</p>
+      <div class="lab-review-summary" aria-label="Review progress">
+        <span>${reviewed}/${run.cases.length} reviewed tasks</span>
+        <span>${eligible} eligible live preference pairs</span>
+        <span>${development} development tasks</span>
+      </div>
+      ${development ? '<p class="notice">These development tasks have been used for revision feedback or preference export. Keep a separate fresh final test to judge transfer.</p>' : ''}
+      ${setupView(run)}
+      ${run.error ? `<p class="error" role="alert">${h(run.error)}</p>` : ''}
+      ${run.cases.map(c => {
+        const order = c.order === 'learned-first' ? ['learned', 'baseline'] : ['baseline', 'learned'];
+        const canReview = c.baseline.status === 'complete' && c.learned.status === 'complete';
+        return `<article class="lab-reviewed-case">
+          <span class="lab-data-role">${c.role === 'development' ? 'Development · reused for learning' : 'Held-out · not yet reused for learning'}</span>
+          <h3>${h(c.prompt)}</h3>
+          <p class="lab-note"><b>Your rubric:</b> ${h(c.rubric || 'No rubric supplied. Review accuracy and usefulness for this task.')}</p>
+          <div class="lab-response-grid">${order.map((side, n) => responseView(c[side], n ? 'B' : 'A', c.revealed ? side === 'learned' ? 'with chip' : 'base model' : '')).join('')}</div>
+          <fieldset class="lab-votes"><legend>Your preference</legend>
+            ${[['A', 'Prefer A'], ['B', 'Prefer B'], ['tie', 'About the same']].map(([value, label]) =>
+              btn('lab-vote', label, c.preference === value ? 'blue' : '',
+                `data-run-id="${h(run.id)}" data-case-id="${h(c.id)}" data-vote="${value}" aria-pressed="${c.preference === value}" ${!canReview || busy ? 'disabled' : ''}`),
+            ).join('')}
+            ${btn('lab-reveal', c.revealed ? 'Setup revealed' : 'Reveal A/B setup', '', `data-run-id="${h(run.id)}" data-case-id="${h(c.id)}" ${!canReview || c.revealed || busy ? 'disabled' : ''}`)}
+          </fieldset>
+          <label for="lab-notes-${h(run.id)}-${h(c.id)}">Review notes</label>
+          <textarea id="lab-notes-${h(run.id)}-${h(c.id)}" data-lab-run="${h(run.id)}" data-lab-case="${h(c.id)}" maxlength="3000" placeholder="What worked? What should the next revision improve?" ${busy ? 'disabled' : ''}>${h(c.notes)}</textarea>
+        </article>`;
+      }).join('')}
+      <div class="lab-review-actions">
+        <div><b>Keep your evidence</b><p class="lab-note">The report preserves the frozen setup, returned text, rubric, and your reviews.</p>
+          ${btn('lab-export', 'Export experiment report', '', `data-run-id="${h(run.id)}"`)}
+        </div>
+        <div><b>Turn reviews into the next lesson</b><p class="lab-note">Prepare your notes for a draft revision. Used tasks become development data; no chip is created or approved yet.</p>
+          ${btn('lab-learn-review', 'Use reviews for next revision', 'blue', `data-run-id="${h(run.id)}" ${busy || !sameMode || !reviewed ? 'disabled' : ''}`)}
+        </div>
+        <div><b>Share response preferences</b><p class="lab-note">Export complete live A/B preferences as chosen/rejected JSONL. Responses came from different instruction contexts; review the common-task export before external preference training.</p>
+          ${btn('lab-preferences', 'Review preference export', '', `data-run-id="${h(run.id)}" ${busy || !sameMode || !eligible ? 'disabled' : ''}`)}
+        </div>
+      </div>
+    </section>`;
   }
   function curationView() {
     const c = state().curation, chip = selected();
@@ -137,8 +280,14 @@ export function createChipLab(d) {
     if (!model(chosen.baseModel)) return complain('Review this chip and enter a valid base model ID first.');
     const cases = s.cases.map(c => ({ ...c, prompt: c.prompt.trim(), rubric: c.rubric.trim() }));
     if (!cases.length || cases.some(c => !c.prompt)) return complain('Give every held-out task a specific prompt.');
-    const normalized = v => v.trim().replace(/\s+/g, ' ').toLowerCase();
-    if (cases.some(c => chosen.examples.some(e => normalized(e.prompt) === normalized(c.prompt)))) return complain('Use fresh held-out tasks, different from this chip’s teaching examples.');
+    if (new Set(cases.map(c => normalizeLabPrompt(c.prompt))).size !== cases.length) {
+      return complain('Choose different held-out tasks. This set contains normalized duplicate prompts.');
+    }
+    const teachingPrompts = [
+      ...chosen.examples.flatMap(example => teachingPromptParts(example.prompt)),
+      ...(chosen.provenance?.sourcePrompts || []),
+    ].map(normalizeLabPrompt);
+    if (cases.some(item => teachingPrompts.includes(normalizeLabPrompt(item.prompt)))) return complain('Use fresh held-out tasks, different from this chip’s teaching examples.');
     const agent = s.agent, baseModel = chosen.baseModel, demo = isDemo(), chip = structuredClone(chosen);
     if (!d.ready(agent, baseModel)) return true;
     const frozenProfile = profile({...db().generation,maxTokens:db().maxTokens,voice:db().agents[agent].voice});
@@ -146,7 +295,7 @@ export function createChipLab(d) {
     const usedExamples = [];
     for(let i=1;i+1<messages[0].learned.length-1;i+=2) if(messages[0].learned[i].role==='user' && messages[0].learned[i+1].role==='assistant') usedExamples.push({prompt:messages[0].learned[i].content,completion:messages[0].learned[i+1].content});
     const frozenSetup = setup({chip:{...chip,examples:usedExamples,examplesExcerpted:JSON.stringify(usedExamples)!==JSON.stringify(chip.examples)},profile:frozenProfile,baselineSystem:messages[0].baseline[0]?.content,learnedSystem:messages[0].learned[0]?.content});
-    const run = { id: uid(), chipId: chip.id, chipTitle: chip.title, baseModel, setup:frozenSetup, demo, agent, created: Date.now(), status: 'running', error: '', cases: cases.map(c => ({ ...c, baseline: result(null), learned: result(null), order: Math.random() < .5 ? 'baseline-first' : 'learned-first', preference: '', notes: '', revealed: false })) };
+    const run = { id: uid(), chipId: chip.id, chipTitle: chip.title, baseModel, setup:frozenSetup, demo, agent, created: Date.now(), status: 'running', error: '', cases: cases.map(c => ({ ...c, role: usedForDevelopment(c.prompt, demo) ? 'development' : 'holdout', baseline: result(null), learned: result(null), order: Math.random() < .5 ? 'baseline-first' : 'learned-first', preference: '', notes: '', revealed: false })) };
     s.runs.push(run);s.runs = s.runs.slice(-MAX_RUNS);s.activeRun = run.id;
     const job = { type: 'experiment', run, agent, op: d.start(agent, 'Running a blind chip experiment…'), stopped: false };
     active = job;refresh();
@@ -232,7 +381,63 @@ export function createChipLab(d) {
       const run = s.runs.find(r => r.id === data.runId);if (!run) return true;
       d.download('pip-chip-lab-' + run.id + '.json', JSON.stringify({ format: 'pip-chip-lab-v1', exported: new Date().toISOString(), scope: 'Prompt and example adaptation; no hosted model weight changes.', review: 'Human preference only. No automated quality score.', run }, null, 2));return true;
     }
+    if (name === 'lab-preferences' || name === 'lab-preferences-confirm' || name === 'lab-learn-review') {
+      if (d.getBusy()) return complain('Finish or stop the current operation before reusing reviews.');
+      const run = s.runs.find(item => item.id === data.runId);
+      if (!run || !!run.demo !== isDemo()) return complain('Choose a saved experiment from the current mode.');
+      if (name === 'lab-learn-review') {
+        const rows = reviewedCases(run);
+        if (!rows.length) return complain('Review complete responses and add a preference or notes first.');
+        const parent = db().lessons.find(chip => chip.id === run.chipId && !!chip.demo === isDemo());
+        if (!parent) return complain('This experiment’s parent chip is no longer in the library. Import it before preparing a revision.');
+        markDevelopment(rows, !!run.demo);
+        const feedback = rows.map(row => {
+          const side = preferredSide(row);
+          return `Task: ${row.prompt.slice(0, 350)}\nRubric: ${row.rubric.slice(0, 200)}\n` +
+            `Human preference: ${side === 'learned' ? 'with chip' : side === 'baseline' ? 'base model' : row.preference === 'tie' ? 'about the same' : 'not recorded'}.\n` +
+            `Review notes: ${row.notes.slice(0, 700)}`;
+        }).join('\n\n');
+        s.selectedChip = parent.id;
+        s.curation = {
+          ...s.curation,
+          taskIds: [],
+          title: (run.chipTitle + ' · revised').slice(0, 80),
+          goal: 'Improve the reusable approach using the human review below. Preserve accuracy and test transfer on fresh tasks.',
+          feedback: feedback.slice(0, 2000),
+          baseModel: run.baseModel,
+          approved: false,
+        };
+        refresh();
+        if (typeof document !== 'undefined') {
+          document.getElementById('lab-feedback')?.scrollIntoView({ block: 'center' });
+          document.getElementById('lab-feedback')?.focus({ preventScroll: true });
+        }
+        return complain('Review feedback prepared. Select approved teaching examples below; keep a fresh final test.');
+      }
+      const rows = preferenceCases(run);
+      if (!rows.length) return complain('No eligible live preference pairs. Vote on complete, nontruncated, different responses first.');
+      if (name === 'lab-preferences') {
+        d.openModal(`<h2 id="modal-title">Review response preference export</h2>
+          <p class="help">${rows.length} human-reviewed live pair${rows.length === 1 ? '' : 's'} can be exported.</p>
+          <p class="notice">Responses were generated with different instruction contexts. The JSONL uses one common baseline system and task, without the chip or its examples. Review this context difference before external preference training.</p>
+          <p class="help">One ZIP contains chosen/rejected JSONL and a provenance report preserving both generation contexts. Ties, samples, missing setup, identical answers, failed responses, and truncated outputs are excluded.</p>
+          <p class="help">Exporting for training marks these tasks as development data. Keep a separate fresh final test. No trainer runs here.</p>
+          <div class="row">${btn('lab-preferences-confirm', 'I reviewed this · export preferences', 'primary', `data-run-id="${h(run.id)}"`)}${btn('close', 'Keep reviewing')}</div>`);
+        return true;
+      }
+      markDevelopment(rows, !!run.demo);
+      const jsonl = preferenceRows(run).map(row => JSON.stringify(row)).join('\n') + '\n';
+      const bundle = zipSync({
+        'response-preferences.jsonl': strToU8(jsonl),
+        'provenance.json': strToU8(JSON.stringify(preferenceManifest(run), null, 2)),
+      });
+      d.download('distill-pets-response-preferences-' + run.id + '.zip', bundle, 'application/zip');
+      if (typeof document !== 'undefined') document.getElementById('modal')?.close();
+      refresh();
+      return complain('Preference data and its context report exported. These tasks are now development data.');
+    }
     if (name === 'lab-vote' || name === 'lab-reveal') {
+      if (d.getBusy()) return complain('Finish or stop the current operation before changing reviews.');
       const row = s.runs.find(r => r.id === data.runId)?.cases.find(c => c.id === data.caseId);
       if (!row || row.baseline.status !== 'complete' || row.learned.status !== 'complete') return true;
       if (name === 'lab-reveal') row.revealed = true;
@@ -247,6 +452,7 @@ export function createChipLab(d) {
   }
   function input(element) {
     if (!element?.id?.startsWith('lab-')) return false;
+    if (d.getBusy()) return true;
     const s = state(), data = element.dataset || {};
     if (data.labRun) {
       const row = s.runs.find(r => r.id === data.labRun)?.cases.find(c => c.id === data.labCase);
