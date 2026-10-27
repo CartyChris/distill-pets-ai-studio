@@ -2,6 +2,11 @@
 
 A playful AI workspace where your pets help you write, research, build, and teach.
 
+**Import into v0:** use this repository’s `main` branch and repository root
+(`package.json` is at the top level). Read [START_HERE.md](START_HERE.md), then ask
+Astra to follow the [full upgrade prompt](handoff/ASTRA_PROMPT.md). The complete
+working app is included; the React/mobile/core upgrade plans are future work.
+
 Meet **Milo, the teacher**, and **Nova, the student**. Each pet is a customizable
 interface for a model you choose through OpenRouter. Give the teacher a task,
 review a good answer, and turn its useful approach into a reusable **model chip**.
