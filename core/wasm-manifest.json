@@ -1,0 +1,15 @@
+{
+  "contractVersion": 1,
+  "rustVersion": "1.90.0",
+  "target": "wasm32-unknown-unknown",
+  "bytes": 298367,
+  "sha256": "12d0a78b90919648a19bf8a493a3c38d1883d0417fc6c34afc3928fcaf317217",
+  "sources": {
+    "core/rust/Cargo.toml": "b7969fa911662a7a53678799d2457691a6c7cf0a1d24af64917f4166d9d66b90",
+    "core/rust/Cargo.lock": "54417a841417849176214f594e6864fcb10aeb5a70665683c5f37f2213662da5",
+    "core/rust/rust-toolchain.toml": "ccffa35644e680f8f6db9451a12eb61ba5273d1deed2250ede13edaf37a6c98d",
+    "core/rust/src/lib.rs": "b6545ea9cadf98b2c63bc1863300ae1c188f83e3223e77a3892babd15b736d6a",
+    "core/rust/src/main.rs": "d19df09fa00bf4317b08c5f8f8d27b8c9c87575c6456c3bebf6742ace4245813",
+    "scripts/build-core.mjs": "7815631d5a69ced8cc135bd77480e86335262bcdd26401eec6b264729ad5ac4f"
+  }
+}

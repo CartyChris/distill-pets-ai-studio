@@ -1,6 +1,6 @@
 // Cache the public app shell only. API requests, keys, and model responses
 // never enter this cache. Saved work remains in the app's browser storage.
-const CACHE = 'pip-shell-v6-teaching-workshop';
+const CACHE = 'pip-shell-v7-learning-core';
 const CORE = ['/', '/manifest.webmanifest', '/icons/pip-192.png', '/icons/pip-512.png', '/icons/apple-touch-icon.png'];
 const staticURL = url => url.origin === self.location.origin && (
   url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest'

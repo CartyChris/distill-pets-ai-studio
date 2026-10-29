@@ -10,3 +10,8 @@ playwright-report/
 test-results/
 tests/*.png
 tests/*.json
+core/rust/target/
+__pycache__/
+*.pyc
+.venv/
+training/output/

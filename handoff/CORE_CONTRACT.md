@@ -1,68 +1,34 @@
-# Proposed learning-core contract and cross-language checks
+# Implemented learning-core contract (0.4.0)
 
-This is a design specification for Astra, not an existing API or implementation.
-Keep the browser app and its JavaScript fallback fully functional while adding it.
+The core is now implemented. Read [docs/learning-core.md](../docs/learning-core.md)
+for the version 1 operations, bounds, normalization, ABI and worker behavior.
+Source: `core/rust/`, `src/learning-core/`. Shared fixtures: `core/fixtures.json`.
+The committed WASM is real; `core/wasm-manifest.json` binds it to source hashes.
 
-## Contract boundaries
+A future migration must preserve these boundaries:
 
-Define a versioned UTF-8 JSON input/output contract. Separate operations with
-explicit names such as plan_session, audit_examples, compare_exposure and
-diagnose_output. Use structured result/error objects; preserve stable error
-codes, units, input limits and schema versions across languages.
+- Default three-call teaching; optional 1–3 feedback/revision rounds, up to 24
+  calls across 1–3 tasks. Reference calls are explicit; chip distillation is a
+  separate action. No silent retry/resume, no automatic approval.
+- Frozen profiles/models/checks, all returned rounds, latest-answer feedback,
+  late-response rejection and partial recovery. No-change/check-based stopping
+  is bounded workflow control, not evidence of correctness or neural learning.
+- Explicit human approval of complete live training examples. Playground,
+  validation and truncated data never become eligible just because checks pass.
+- Existing full-role exposure/validation ledger remains authoritative. Core
+  similarity is advisory and cannot grant eligibility or erase prior exposure.
+- The core is pure analysis: no provider calls, keys, code execution or mutable
+  workspace access. Browser workers use an actual compiled WASM engine, with
+  bounded JavaScript fallback if unavailable. No second server is needed.
+- Test native/WASM/JS parity, malformed inputs, Unicode, memory bounds,
+  cancellation, concurrent analyses and fallback before replacing the core.
+- Python ZIP auditing verifies checksums and training decisions independently;
+  the optional trainer has a no-download dry run and an actual tiny CPU training
+  smoke test. It runs separately from the app/serverless request lifecycle.
+- Go remains optional. Add it only for a concrete workflow; do not introduce an
+  unused duplicate orchestrator or pretend one already exists.
 
-The core is pure deterministic analysis. It has no API keys, provider transport,
-file execution, network requests, hidden model reasoning or approval authority.
-Human review and the app’s job controller remain authoritative. A core failure
-must not convert a rejected row into an eligible one or bypass a review gate.
-
-## Initial exact rules
-
-- A session accepts 1–3 selected practice tasks. Each uses 3 calls; a teacher
-  reference adds 1 per task. Valid examples: (1,false)→3, (1,true)→4,
-  (3,false)→9, (3,true)→12. Zero, four, fractional or malformed counts fail.
-  A chip distillation call is a separate explicit action, not hidden in that sum.
-- Training eligibility requires an approved, complete, nontruncated live train
-  example with valid nonempty task/answer/context. Samples, validation rows and
-  imported approval flags never grant eligibility automatically.
-- Preference eligibility additionally requires an explicit non-tie human choice,
-  two distinct complete outputs, a compatible frozen setup and provenance.
-  Preserve the original generation-context caveat and one-archive delivery.
-- Exposure checks cover all user turns, role-tagged chip examples, inherited
-  profiles, applied steering, deletion/reload history and evaluation reused for
-  optimization. Reserve validation before teaching. At ledger capacity, surface
-  the limit rather than silently forgetting exposures.
-- Normalization must have explicit semantics. Current JavaScript uses Unicode
-  NFKC, case/whitespace treatment and known wrapper extraction. Match it on
-  supported inputs, including non-ASCII cases, or version/migrate deliberately.
-  Do not quietly replace it with ASCII lowercase. Exact normalized overlap
-  checks are not a semantic guarantee against paraphrase leakage.
-- Avoid silent numeric wrapping, NaN acceptance, oversized allocation and
-  unbounded nested traversal. Specify bytes versus characters, size budgets,
-  truncation flags and recovery before implementation.
-
-## Advisory diagnostics
-
-Examples: character/token estimates with a stated estimator, excessive repeated
-phrases, placeholder markers, missing schema fields, citation syntax counts,
-coverage gaps and near-duplicate candidates. Each finding needs a reason and
-evidence span/count when possible. These are review hints, not calibrated truth
-probabilities, correctness scores or evidence of neural learning.
-
-## Shared fixture families
-
-Use the same fixtures in JS/TS, Rust native/WASM, Python and Go:
-
-1. Ordinary and boundary call plans, invalid numeric types and maximum budgets.
-2. Every ineligible training/preference reason independently, plus eligible rows.
-3. Nested conversation heldout leakage and role-tagged inherited chip examples.
-4. Full-width letters, combining marks, emoji, mixed scripts and whitespace.
-5. Empty/oversized/malformed JSON, long context and incomplete UTF-8 boundaries.
-6. Deterministic reports under a fixed seed and stable ordering.
-7. Cancellation during optional analysis, worker startup failure and fallback.
-8. Native/WASM integer and encoding parity; deliberately broken approval or split
-   predicates must fail meaningful regression/mutation checks.
-
-Only benchmark real compiled artifacts on representative bounded inputs. Record
-versions, fixture hashes, commands and results. If no Rust/Go toolchain is available,
-finish the supported path, label that core unbuilt, and provide a reproducible
-build instruction; never ship an empty file as a working WASM engine.
+Run `npm run test:core`, `npm run test:core:native`,
+`npm run test:browser:core` against the built app, and the training checks
+listed in `training/README.md`. Do not claim that the optional LoRA smoke test
+proves generalization or compatibility with an arbitrary selected base model.

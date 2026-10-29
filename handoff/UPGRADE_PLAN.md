@@ -1,4 +1,10 @@
-# Upgrade plan — work for Astra, not changes made in this package
+# Further upgrade plan for Astra
+
+Status: 0.4.0 already implements the Rust/WASM worker, JS fallback, recursive
+teaching, diagnostics, curriculum starters, reviewed ZIPs and Python audit/LoRA
+tools. Preserve them and extend from docs/learning-core.md. React/mobile framework
+migration and Vercel hosting are still future work. The items below are a roadmap,
+not a claim that every proposed component has been built.
 
 ## 1. Establish the integration baseline
 
@@ -81,7 +87,8 @@ feedback keeps the useful first attempt. See CORE_CONTRACT.md.
 ## 5. Add measured portable cores
 
 Start with one pure reference contract in TypeScript and shared golden fixtures.
-Only add Rust/WASM, Python and Go operations that expose the same useful contract.
+Extend the existing Rust/WASM and JavaScript contract with shared fixtures.
+Python has a separate verified dataset/training contract. Add Go only when useful.
 
 - Rust: pure bounded planner/diagnostics library; native tests; actual WASM
   compilation; browser smoke test; worker adapter; memory/input bounds.

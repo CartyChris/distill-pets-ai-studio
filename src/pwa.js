@@ -58,7 +58,7 @@ new MutationObserver(() => {
   const color = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   if (color) document.querySelector('meta[name="theme-color"]').content = color;
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+if ('serviceWorker' in navigator && window.isSecureContext) {
   window.addEventListener('load', async () => {
     try {
       registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });

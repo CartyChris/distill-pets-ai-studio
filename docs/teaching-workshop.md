@@ -10,8 +10,11 @@ carry instructions and examples for a chosen base model.
 1. Try the Playground, or connect OpenRouter and choose both models in Settings.
 2. Open Teaching workshop. Write a narrow goal and observable success checks.
 3. Select one to three practice tasks. Reserve different validation tasks before starting.
-4. Read the call plan, then start. A task uses three calls: attempt, feedback, revision.
-   A teacher reference is optional and adds one call per task. A session uses at most twelve calls.
+4. Read the call plan, then start. The default is three calls: attempt, feedback, revision.
+   Choose up to three feedback/revision rounds. A teacher reference is optional
+   and adds one call per task. A session uses at most 24 calls. Optional phrase,
+   length and JSON checks inform feedback; they do not certify quality. Early
+   stopping can save calls when a revision is unchanged or configured checks pass.
 5. Read every returned stage. You can watch the same work in Open World’s Results
    and Team chat. Guidance is queued for the next eligible teacher or student step.
 6. Review the revised example and explicitly approve it. Select up to three
@@ -57,7 +60,10 @@ source, and reuse permissions yourself before approving supplied data.
   the supervised task context. Playground, validation, and partial rows are excluded.
 - **Validation JSONL:** reserved prompts and rubrics, without invented answers.
 - **Session report:** returned artifacts, frozen models/profiles/settings, applied
-  guidance, and call counts. This report also works in Playground.
+  guidance, every revision round, deterministic checks and call counts. This report also works in Playground.
+- **Reviewed training bundle:** training JSONL, separate validation prompts,
+  source/model provenance and SHA-256 hashes in one ZIP. Run the included Python
+  audit before external training; see [the training guide](../training/README.md).
 - **Preference ZIP:** Chip lab’s reviewed live chosen/rejected response pairs and
   a separate provenance manifest. Ties, identical answers, samples, missing
   frozen setups, and failed/truncated outputs are excluded.

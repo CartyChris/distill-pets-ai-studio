@@ -5,7 +5,8 @@ A playful AI workspace where your pets help you write, research, build, and teac
 **Import into v0:** use this repository’s `main` branch and repository root
 (`package.json` is at the top level). Read [START_HERE.md](START_HERE.md), then ask
 Astra to follow the [full upgrade prompt](handoff/ASTRA_PROMPT.md). The complete
-working app is included; the React/mobile/core upgrade plans are future work.
+working app is included. Version **0.4.0** adds a real Rust/WASM learning core,
+recursive teaching and portable training tools. React/Next migration remains future work.
 
 Meet **Milo, the teacher**, and **Nova, the student**. Each pet is a customizable
 interface for a model you choose through OpenRouter. Give the teacher a task,
@@ -73,13 +74,19 @@ gets approved and reused.
 
 Open **Teaching workshop** to let the student try first, receive feedback about
 that actual attempt, then revise. Choose one to three practice tasks and reserve
-different validation tasks. The app shows the planned **3–12 calls** before you
-start; an optional teacher reference adds one call per task. Each returned stage
+different validation tasks. Choose **1–3 feedback/revision rounds**, with **3–24
+planned calls** visible before launch; an optional teacher reference adds one call per task. Each returned stage
 stays readable, and you can follow the session or send guidance in the Wilds.
+Optional phrase, JSON and length checks help focus feedback. Early stopping
+can skip unchanged revisions or stop after configured checks pass; review is
+always your decision. Three curriculum starters and task suggestions help you begin.
 
 Review a revision before approving it. The example basket supports bounded
 JSON/JSONL imports, duplicate checks, approved live training exports, and a
-separate export of reserved validation prompts. Draft a chip from up to three
+separate export of reserved validation prompts. A local **Rust/WebAssembly** worker
+checks dataset eligibility, overlap and similar prompts, with a JavaScript fallback.
+Download a single training bundle with checksums and provenance, then audit it with
+the included Python tools. Draft a chip from up to three
 approved examples, review its rules, then send reserved tasks to Chip lab.
 
 Chip lab can turn your reviews into feedback for the next immutable revision.
@@ -89,8 +96,10 @@ with the different response-generation contexts explicitly recorded.
 
 Read the [workshop guide](docs/teaching-workshop.md), [verification report](docs/research/upgrade-verification.md), or the
 [current source/research review](docs/research/distillation-review-2026-10-24.md).
-These are browser-native workflows inspired by established training and
-optimization tools; the app does not run a GPU trainer or update hosted weights.
+The [learning-core guide](docs/learning-core.md) describes the compiled WASM engine
+and its bounded contract. The [optional Python trainer](training/README.md) can
+train a real LoRA adapter on a compatible local/Hugging Face causal model. This
+separate compute job does not change an OpenRouter model's hosted weights.
 
 ## Run it
 

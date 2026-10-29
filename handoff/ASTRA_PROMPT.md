@@ -1,6 +1,6 @@
 # Paste this into Astra inside my existing Vercel v0 project
 
-You are upgrading **Distill Pets AI Studio** using the complete 0.3.0
+You are upgrading **Distill Pets AI Studio** using the complete 0.4.0
 source and handoff in this imported repository. Work inside my existing v0 project, use its available
 Astra/vmax configuration, and carry the work through implementation, verification,
 and full-stack production deployment to my connected Vercel project. Do not stop
@@ -66,7 +66,7 @@ Pause/reduce scenic work when hidden; never silently restart a paid model run.
 
 Preserve the bounded student attempt → targeted teacher feedback → student
 revision sequence, with optional teacher reference, frozen configuration and
-the current 3–12-call session ceiling. Planned calls must be visible before launch.
+the current default three-call flow and configurable 3–24-call session ceiling. Planned calls must be visible before launch.
 Preserve each returned artifact and exact useful context. Student questions,
 practice, critique/revision, human reviews and chip revisions should form a
 clear, inspectable workflow with bounded user-controlled continuation.
@@ -98,16 +98,19 @@ real weight training; do not invent a universal OpenRouter training endpoint.
 
 ## Rust/WASM, Python and Go
 
-The existing source has portable JavaScript/Python Superpower generators; it does NOT
-contain a Rust/WASM or Go core yet. Build additions only with a real purpose:
+Version 0.4 already includes a compiled Rust/WASM core, a worker with JavaScript
+fallback, shared fixtures, multi-round teaching, reviewed ZIP exports, a Python
+audit and an optional LoRA trainer. Read docs/learning-core.md and training/README.md
+and preserve these working paths. Go is still optional future work. Extend the
+existing contract only when there is a concrete benefit:
 
-- Define one versioned, bounded, JSON-serializable learning-core contract and
-  shared golden fixtures before implementing multiple languages.
-- Implement a pure Rust policy/analysis core and compile a real browser WASM
-  artifact. Good candidates are budget planning, eligibility flags, deterministic
-  fingerprints and bounded numeric diagnostics. Keep Unicode/task semantics
+- Extend the existing versioned JSON contract and shared fixtures before adding
+  operations or languages; do not discard tested core behavior.
+- Preserve and extend the pure Rust analysis core and real compiled browser WASM
+  artifact. Planning, eligibility diagnostics and output checks already work.
+  Keep Unicode/task semantics
   consistent with the existing implementation or explicitly version changes.
-- Put heavier browser analysis in a Web Worker with a working JavaScript fallback.
+- Preserve heavier analysis in the existing Web Worker with its JavaScript fallback.
   WASM failure must not prevent chat, review, exports or teaching. Keep secrets,
   network calls and authoritative human approval outside the core.
 - Improve the existing Python runner/export path and add tested offline dataset
@@ -119,7 +122,8 @@ contain a Rust/WASM or Go core yet. Build additions only with a real purpose:
   logic independent of HTTP/process startup. Bound reads, propagate context
   cancellation, produce useful errors and structured reports, and test with the
   race detector where supported. Avoid a duplicate unused orchestration server.
-- Cross-check Rust native/WASM, JavaScript, Python and Go on the same fixtures.
+- Cross-check Rust native/WASM and JavaScript using the shared fixtures. Keep
+  Python bundle/trainer integration tests; add parity tests for any new Go work.
   Include build scripts, actual WASM output, licenses and reproducible instructions.
   A README mentioning an engine is not an implementation. Never label these
   deterministic heuristics a trained local neural network.

@@ -1,10 +1,11 @@
 # Distill Pets AI Studio — Astra / v0 handoff
 
-This repository contains the complete current **0.3.0 application source**, its lockfile,
+This repository contains the complete current **0.4.0 application source**, its lockfile,
 tests, PWA assets, pet artwork, Wilds gallery, existing research and documentation,
-plus the instruction-only handoff below. The working application is included at the repository root. The proposed React,
-mobile UX and core upgrades remain future work for Astra; they are not claimed
-as implemented in this handoff.
+plus the handoff below. The working application is included at the repository root.
+Rust/WASM analysis, recursive teaching, reviewed training bundles and Python
+audit/LoRA tools are implemented. React/Next and full Vercel migration remain
+future work for Astra. Read docs/learning-core.md before changing the new core.
 
 ## Import this repository in v0
 
@@ -37,7 +38,8 @@ source archive is available through GitHub's Code → Download ZIP action.
 - **handoff/VERCEL_DEPLOYMENT.md** — full-stack migration and release checks.
 - **handoff/SOURCE_MAP.md** — existing files, compatibility rules and tests.
 - **handoff/ACCEPTANCE_CHECKLIST.md** — evidence required before calling it done.
-- **handoff/source-manifest.json** — original commit and SHA-256 of every app file.
+- **handoff/source-manifest.json** — historical 0.3 baseline hashes; current source has changed.
+- **core/wasm-manifest.json** — current compiled WASM hash and corresponding source hashes.
 
 ## What exists today
 
@@ -47,12 +49,14 @@ curated datasets, blind comparisons, a procedural Canvas world, conversations,
 coding/research studios, Mermaid/generative UI, customization, and runnable
 JavaScript/Python Superpower exports.
 
-**There is no Rust/WASM or Go core in this source version.** Those are proposed
-additions in the handoff, not binaries or implemented capabilities. The hosted
-AI models do neural computation. Chips, memory and visible review layers organize
-context and workflow; they do not update hosted model weights.
+**A working Rust/WASM core is included**, with a lazy worker and JavaScript
+fallback. Python provides offline bundle audits and an optional real LoRA trainer.
+Go remains optional future work; no Go runtime is required. Hosted AI models do
+neural computation; the local core performs deterministic analysis. Chips and
+memory organize context and do not update hosted weights. Separate Python
+training produces an adapter for a trainable model you choose.
 
-## Run the unchanged source locally
+## Run the source locally
 
 Requires Node.js 22 or newer:
 

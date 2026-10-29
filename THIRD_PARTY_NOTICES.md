@@ -1,5 +1,11 @@
 # Third-party software
 
+The compiled Rust/WASM core's dependency notices are in
+[core/THIRD_PARTY_NOTICES.txt](core/THIRD_PARTY_NOTICES.txt), also distributed as
+`public/CORE_THIRD_PARTY_NOTICES.txt`. The optional Python training dependencies
+are installed separately from their pinned upstream packages; their licenses
+remain with those distributions. No third-party model weights are bundled.
+
 Motion 12.43.0 — https://github.com/motiondivision/motion
 
 The MIT License (MIT)

@@ -16,4 +16,34 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:features
+      - run: npm run test:core
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Production learning and offline browser checks
+        run: |
+          PORT=5194 npm start > /tmp/distill-pets-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            curl --silent --fail http://127.0.0.1:5194/api/_healthcheck && break
+            sleep 1
+          done
+          APP_URL=http://127.0.0.1:5194 npm run test:browser:core
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pinned Rust toolchain
+        run: rustup toolchain install 1.90.0 --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+      - run: rustup default 1.90.0
+      - run: cargo fmt --manifest-path core/rust/Cargo.toml --check
+      - run: cargo clippy --locked --manifest-path core/rust/Cargo.toml --all-targets -- -D warnings
+      - run: cargo clippy --locked --manifest-path core/rust/Cargo.toml --target wasm32-unknown-unknown --lib -- -D warnings
+      - run: npm run test:core:native
+      - run: npm run core:build
+      - run: npm run test:core
+      - name: Rebuilt WASM must match the committed source artifact
+        run: git diff --exit-code -- src/learning-core/distill_pets_core.wasm core/wasm-manifest.json

@@ -1,3 +1,4 @@
+<!-- 0.4.0 includes the learning core and Python training tools. This checklist remains for the next migration; rerun checks on its final source. -->
 # Completion checklist for Astra
 
 Check these against the upgraded v0 app. This file does not claim the future
@@ -34,7 +35,7 @@ upgrade or Vercel deployment has already passed.
 ## Teaching, exports and recovery
 
 - [ ] Frozen teacher/student/models/profiles; actual attempt → feedback → revision.
-- [ ] Visible 3–12-call ceiling; reference and distillation costs are explicit.
+- [ ] Visible 3–24-call ceiling with the default three-call flow; reference and distillation costs are explicit.
 - [ ] Teacher critiques the actual student answer; revisions use returned feedback.
 - [ ] Stop/reload/late output cannot create further calls, approvals or chips.
 - [ ] Full earlier-user-turn and inherited-chip leakage checks survive deletion

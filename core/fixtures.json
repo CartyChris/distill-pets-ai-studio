@@ -1,0 +1,16 @@
+[
+  {"name":"default teaching walk","input":{"version":1,"operation":"plan_session","tasks":1,"rounds":1,"reference":false,"maxTokens":2048},"expect":{"plannedCalls":3,"teacherCalls":1,"studentCalls":2,"maxOutputTokens":6144}},
+  {"name":"largest bounded walk","input":{"version":1,"operation":"plan_session","tasks":3,"rounds":3,"reference":true,"maxTokens":8000},"expect":{"plannedCalls":24,"teacherCalls":12,"studentCalls":12,"maxOutputTokens":192000}},
+  {"name":"fractional tasks rejected","input":{"version":1,"operation":"plan_session","tasks":1.5,"rounds":1,"reference":false,"maxTokens":2048},"error":"INVALID_INPUT"},
+  {"name":"numeric strings rejected","input":{"version":1,"operation":"plan_session","tasks":"1","rounds":1,"reference":false,"maxTokens":2048},"error":"INVALID_INPUT"},
+  {"name":"unknown version rejected","input":{"version":2,"operation":"plan_session"},"error":"UNSUPPORTED_VERSION"},
+  {"name":"unicode characters and bytes","input":{"version":1,"operation":"diagnose_output","text":"🌻 Café","checks":{}},"expect":{"characters":6,"utf8Bytes":10,"estimatedTokens":2}},
+  {"name":"JSON keys and explicit checks","input":{"version":1,"operation":"diagnose_output","text":"{\"answer\":\"hello\"}","checks":{"format":"json","jsonKeys":["answer","source"],"required":["hello"],"forbidden":["maybe"],"minChars":3,"maxChars":100}},"expect":{"failedChecks":1}},
+  {"name":"invalid JSON","input":{"version":1,"operation":"diagnose_output","text":"```json\n{}\n```","checks":{"format":"json"}},"expect":{"failedChecks":1}},
+  {"name":"case and compatibility normalization","input":{"version":1,"operation":"diagnose_output","text":"ＣＡＦÉ Straße ΟΣ","checks":{"required":["café","straße","ος"]}},"expect":{"failedChecks":0}},
+  {"name":"not a truth score","input":{"version":1,"operation":"diagnose_output","text":"The moon is made of cheese.","checks":{}},"expect":{"failedChecks":0,"checkCount":0}},
+  {"name":"review and split gates","input":{"version":1,"operation":"audit_examples","rows":[{"id":"good","prompts":["Hello"],"completion":"A complete answer.","approved":true,"demo":false,"truncated":false,"split":"train"},{"id":"sample","prompts":["Sample"],"completion":"Sample answer","approved":true,"demo":true,"truncated":false,"split":"train"},{"id":"pending","prompts":["Pending"],"completion":"Answer","approved":false,"demo":false,"truncated":false,"split":"train"}],"validation":["A fresh task"],"exposures":[]},"expect":{"eligibleIds":["good"],"overlaps":[]}},
+  {"name":"earlier turn overlap","input":{"version":1,"operation":"audit_examples","rows":[{"id":"leaky","prompts":["Last turn","  ＨＥＬＤ\n OUT "],"completion":"Answer","approved":true,"demo":false,"truncated":false,"split":"train"}],"validation":["held out"],"exposures":[]},"expect":{"eligibleIds":[],"overlaps":[{"validationIndex":0,"rowId":"leaky"}]}},
+  {"name":"history survives removed rows","input":{"version":1,"operation":"audit_examples","rows":[],"validation":["Café"],"exposures":["ＣＡＦÉ"]},"expect":{"overlaps":[{"validationIndex":0,"rowId":"history"}]}},
+  {"name":"invalid metadata fails closed","input":{"version":1,"operation":"audit_examples","rows":[{"id":"bad","prompts":["Question"],"completion":"Answer","approved":"yes","demo":false,"truncated":false,"split":"train"}],"validation":[],"exposures":[]},"error":"INVALID_INPUT"}
+]

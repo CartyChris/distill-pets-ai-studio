@@ -1,7 +1,7 @@
 {
   "source_commit": "7234e06aaa7c258ffb4d345c60c2efa53aa403eb",
   "source_version": "0.3.0",
-  "application_source_changed": false,
+  "application_source_changed": true,
   "files": {
     ".env.example": "df02224f1e008bd14527f3c83b87e0128de63a6e2fd65cfd1060c3224d5bf7ba",
     ".github/workflows/verify.yml": "c3f858b077d8750084ccea5f27528ce540cd7a8075be8d3be80a02e957adc955",
@@ -98,5 +98,6 @@
     "tsconfig.json": "c3df7d9e7ce2ec1fbfb3884f3b091ec1f3d57a814a29c354e03700e31a3834ff"
   },
   "manifest_kind": "baseline_commit_snapshot",
-  "description": "Hashes of application and documentation files at source_commit. New handoff documents and the v0 import note added to README are outside that baseline snapshot. Runtime application source remains unchanged."
+  "description": "Historical 0.3.0 baseline hash snapshot. Current application source changed in 0.4.0; these are not current file hashes. The current WASM/source hashes are in core/wasm-manifest.json.",
+  "current_version": "0.4.0"
 }

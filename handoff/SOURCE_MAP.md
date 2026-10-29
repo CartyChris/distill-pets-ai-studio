@@ -1,16 +1,18 @@
 # Current source and compatibility map
 
-Baseline: Distill Pets AI Studio 0.3.0, commit
+Historical baseline: Distill Pets AI Studio 0.3.0, commit
 7234e06aaa7c258ffb4d345c60c2efa53aa403eb. The source-manifest.json hashes
-identify the exact baseline files at that commit. The repository README also
-contains the new v0 import note; handoff files are additions to the baseline.
+identify historical baseline files, not current 0.4.0 content. The current
+application includes the implemented learning-core upgrade described below.
 
 | Area | Existing entry points | Preserve / migrate |
 | --- | --- | --- |
 | Startup and UI | src/main.ts, src/app.js, src/styles.css | Vite startup and imperative rendering today; replace incrementally with React components, not another imperative page rebuild inside every React update. |
 | HTTP / models | src/api.js, backend/index.ts | Same-origin transport; GET /api/models, POST /api/complete, GET /api/_healthcheck. Backend currently uses portable runtime helpers. |
 | Portable hosting | portable/runtime.js, portable/http.mjs, portable/server.mjs, portable/build.mjs, portable/vite.config.mjs | Local Node hosting and Vite build. These are not existing Vercel/Next route handlers. |
-| Teaching | src/teaching.js, src/teaching.css | Frozen 3–12-call sessions, returned attempt/feedback/revision, reviewed basket, imports/exports, validation handoff, exposure ledger. |
+| Teaching | src/teaching.js, src/teaching.css | Frozen 3–24-call sessions with up to 3 review rounds and output diagnostics, returned attempt/feedback/revision, reviewed basket, imports/exports, validation handoff, exposure ledger. |
+| Learning core | src/learning-core/, core/rust/, core/fixtures.json, core/wasm-manifest.json | Actual Rust/WASM worker, JS fallback, bounded planner/diagnostics/audit contract, source/artifact integrity. |
+| Training tools | src/training-bundle.js, training/ | Reviewed ZIP/provenance, Python offline audit and optional tested LoRA trainer. |
 | Chips / evaluation | src/chip-lab.js, src/chip-lab.css, chip methods in src/app.js | Blind fixed-model comparisons, preferences, one-ZIP provenance exports, development roles and immutable drafts. |
 | Conversations | src/conversations.js | Bounded streaming threads, compatible chip/model context, reading position and safe rendering. |
 | Education | src/academy.js | Five-step trail tied to actual workspace evidence; no cosmetic completion flags. |
@@ -67,8 +69,8 @@ view catalog check so a shorter bottom dock does not accidentally reduce testing
 
 ## Engine reality check
 
-No Cargo.toml, Rust source, WASM engine artifact, go.mod, or Go core is part of
-the current app. Python runner source is generated from src/superpowers.js;
-do not confuse that with a Python web server. New engine/core work belongs to
-the proposed upgrade. Keep benchmarks, local inference and real weight training
-separate from prompt/context workflow orchestration.
+Rust source and a real compiled WASM artifact are included, along with native/JS/WASM
+fixtures, a worker and fallback. Python Superpower exports remain in src/superpowers.js;
+training/ adds an offline auditor and optional LoRA training job. No Go runtime or
+Python web server is required. Deterministic local analysis is distinct from hosted
+model inference and separate weight training. See docs/learning-core.md.
