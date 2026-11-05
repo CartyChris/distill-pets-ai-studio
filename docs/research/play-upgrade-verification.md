@@ -36,11 +36,14 @@ or the labeled Playground; no paid inference or new weight-training job was run
 for this UI release. Existing Mermaid dependency chunk-size notices remain in
 the build; this release adds no runtime dependency.
 
-The first remote run exposed an intermittent postcard preview failure. Capture
-now decodes the PNG before opening its preview, provides intrinsic image sizes,
-dispatches button capture explicitly, and discards results if the user closes
-the camera while encoding. The regression retains real PNG encoding, delays its
-callback to test cancellation, and checks both button and keyboard capture.
+Remote checks exposed a postcard preview failure: the panel entrance animation
+tried to commit styles after the camera had hidden the panel. The world panel
+now owns a cancellable native animation, only animates visible elements, and
+never commits retained animation styles. Capture also decodes the PNG before
+opening its preview, provides intrinsic image sizes, dispatches button capture
+explicitly, and discards results if the user closes the camera while encoding.
+The regression retains real PNG encoding, delays its callback to test cancellation,
+and checks repeated button and keyboard capture while the Play panel is hidden.
 
 ## Preserved boundaries
 

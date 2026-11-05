@@ -51,6 +51,15 @@ await page.locator('[data-action="world-tab"][data-tab="dialogue"]').click();
 assert.match(await page.locator('#world-dialogue-list').textContent(),/Student practice 1/);assert.match(await page.locator('#world-dialogue-list').textContent(),/Teacher feedback 1/);
 assert.match(await page.locator('[data-world-status]').textContent(),/student practice 1/);
 await page.locator('[data-action="world-close-panel"]').click();
+// Reproduce a live state refresh while the camera hides an entering panel.
+// This used to ask Motion to commit styles on a non-rendered element.
+await page.evaluate(async()=>{
+  await adventure.action('world-tab',{tab:'play'});
+  await adventure.action('world-photo');
+  adventure.invalidate();adventure.invalidate();
+  await adventure.action('world-photo-close');
+  await adventure.action('world-close-panel');
+});
 await page.setViewportSize({width:420,height:912});await page.waitForTimeout(180);await page.screenshot({path:'tests/world-evolution-iphone.png'});
 for(const size of [{width:420,height:912},{width:390,height:844},{width:568,height:320},{width:1280,height:800}]){
 await page.setViewportSize(size);await page.waitForTimeout(100);

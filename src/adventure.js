@@ -1,4 +1,3 @@
-import { animate } from 'motion/mini';
 import { createWorldEngine, WORLD_BIOMES } from './world-engine.js';
 import { cleanPlaybook, PLAY_ACTIVITIES, FIELD_TRAILS, recordMoment, trailProgress, postcardCrop } from './playbook.js';
 import { playPanel } from './play-panel.js';
@@ -50,6 +49,7 @@ export function createAdventure(d) {
     photoURL = '',
     photoBusy = false,
     photoRequest = 0,
+    panelReveal = null,
     momentTimer;
   const book = () => state().playbook || (state().playbook = cleanPlaybook());
   const engine = createWorldEngine({
@@ -187,12 +187,19 @@ export function createAdventure(d) {
     return `<section class="world-directory" aria-labelledby="world-directory-title"><h3 id="world-directory-title" class="world-section-title">Your field atlas</h3><p class="world-help">Look around, visit together, or inspect a place. These scenic actions use no model calls.</p><label for="world-place-search">Find a place or a little lesson</label><input type="search" id="world-place-search" maxlength="80" value="${h(placeSearch)}" placeholder="Try flowers, sources, or a workshop…"><label for="world-place-filter">Show</label><select id="world-place-filter">${Object.entries({landmark:'Landmarks & teaching stops',npc:'Workflow characters',enemy:'Mischievous scenic creatures',all:'All places & characters'}).map(([id, title]) => `<option value="${id}" ${placeFilter === id ? 'selected' : ''}>${title}</option>`).join('')}</select><div id="world-place-list">${placeCards()}</div></section>`;
   }
   function reveal(element) {
-    if (element && !reduced())
-      animate(
-        element,
-        { opacity: [0, 1], transform: ['translateY(8px)', 'translateY(0px)'] },
-        { duration: 0.2 },
-      );
+    cancelReveal();
+    if (!element || photoMode || reduced() || state().motion === 'reduced' || !element.getClientRects().length) return;
+    // No retained styles or commitStyles: a panel can be hidden at any moment.
+    const animation = element.animate([
+      {opacity:0,transform:'translateY(8px)'},
+      {opacity:1,transform:'translateY(0)'},
+    ],{duration:200,easing:'ease-out'});
+    panelReveal = animation;
+    animation.onfinish = () => { if(panelReveal === animation) panelReveal = null; };
+  }
+  function cancelReveal() {
+    panelReveal?.cancel();
+    panelReveal = null;
   }
   function view() {
     return `<section id="adventure-root" class="adventure" aria-label="The Living Wilds open world">
@@ -461,6 +468,7 @@ export function createAdventure(d) {
     } else if (name === 'world-journal-export') {
       downloadBlob(new Blob([JSON.stringify({ app:'Distill Pets AI Studio', kind:'scenic-field-journal', note:'Cosmetic memories, not model training or evaluation evidence.', ...book() },null,2)],{type:'application/json'}),'distill-pets-field-journal.json');
     } else if (name === 'world-photo') {
+      cancelReveal();
       photoMode = true; refreshPhoto(); engine.command('frame-pair',{format:book().format});
       document.querySelector('[data-action="world-photo-close"]')?.focus({preventScroll:true});
       announce('Postcard camera open. Frame your companions and make a PNG keepsake.');
@@ -482,6 +490,7 @@ export function createAdventure(d) {
       refresh();
       d.save();
     } else if (name === 'world-close-panel') {
+      cancelReveal();
       a.panelOpen = false;
       renderPanel();
       d.save();
@@ -703,6 +712,6 @@ export function createAdventure(d) {
       }
     },
     metrics: () => engine.metrics(),
-    destroy: () => { engine.mount(null); photoRequest++; photoMode = false; clearTimeout(momentTimer); if(photoURL) URL.revokeObjectURL(photoURL); photoURL = ''; },
+    destroy: () => { cancelReveal(); engine.mount(null); photoRequest++; photoMode = false; clearTimeout(momentTimer); if(photoURL) URL.revokeObjectURL(photoURL); photoURL = ''; },
   };
 }
