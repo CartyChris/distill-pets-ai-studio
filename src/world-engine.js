@@ -1,4 +1,6 @@
 import { ANIMALS, getSprite } from './pixels.js';
+import { createPlayDirector, drawPlayProps } from './world-play.js';
+import { postcardCrop } from './playbook.js';
 
 // Original, deterministic scenery. Only provider output creates actual resources.
 const WIDTH = 6144,
@@ -1579,6 +1581,8 @@ export function createWorldEngine({
   getOuting = () => null,
   onSelect = () => {},
   onScene = () => {},
+  onPlay = () => {},
+  onVisit = () => {},
 } = {}) {
   let settings = getState() || {},
     world = generateWorld(settings.seed || 'pip-wilds'),
@@ -1588,6 +1592,7 @@ export function createWorldEngine({
     resize = null,
     raf = 0,
     lastTime = 0,
+    lastPaint = 0,
     elapsed = 0,
     frames = 0,
     painted = 0,
@@ -1660,6 +1665,16 @@ export function createWorldEngine({
     }
   }
   buildIndex();
+  const play = createPlayDirector({
+    companions,
+    pathTo: (p, point) => {
+      if (dist(p, point) < 240) return [];
+      const anchor = world.landmarks.reduce((a, b) => dist(point, a) < dist(point, b) ? a : b);
+      return pathBetween(p, anchor);
+    },
+    advance,
+    onComplete: id => { burst(companions.milo.x + 57, companions.milo.y - 80, '#f4ca9c', 20); onPlay(id); },
+  });
   const reduced = () =>
     settings.motion === 'reduced' ||
     !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -1755,6 +1770,7 @@ export function createWorldEngine({
     const point = target || (Number.isFinite(Number(payload.x)) && Number.isFinite(Number(payload.y))
       ? { x: clamp(Number(payload.x), 100, WIDTH - 100), y: clamp(Number(payload.y), 100, HEIGHT - 100), title: 'Your chosen spot', id: 'chosen-spot' } : null);
     if (!point || (!target && waterAt(point.x, point.y))) return false;
+    play.cancel(elapsed);
     const actor = ['milo', 'nova'].includes(payload.agent) ? payload.agent : getOuting()?.agent === 'nova' || (!getOuting() && settings.agent === 'nova') ? 'nova' : 'milo';
     const p = companions[actor];
     const anchor = target?.type === 'landmark' ? site(target.id) : target?.site ? site(target.site)
@@ -1819,6 +1835,7 @@ export function createWorldEngine({
       agents = safeAgents(),
       active = running(o);
     if ((o?.id || '') !== outingID) {
+      play.cancel(elapsed);
       outingID = o?.id || '';
       outingStatus = '';
       waypoint = 0;
@@ -1834,6 +1851,7 @@ export function createWorldEngine({
     if ((o?.status || '') !== outingStatus) {
       outingStatus = o?.status || '';
       if (o && !active) {
+        play.cancel(elapsed);
         setPath(companions.milo, 'camp');
         setPath(companions.nova, 'camp');
         manualTarget = null;
@@ -1849,6 +1867,8 @@ export function createWorldEngine({
       phase = o?.phase || '';
     // Model phases affect expression, never estimated progress. Brief scenic stops keep the walk legible.
     const discussing = active && /question|reply|practice|feedback|reflection/.test(phase);
+    if (play.status()) play.update(dt, elapsed, paused);
+    else {
     if (manualTarget && !lead.target) {
       lead.target = manualTarget;
       lead.path = [];
@@ -1893,6 +1913,7 @@ export function createWorldEngine({
     if (navigation && !lead.target && !lead.path.length && !navigation.arrived) {
       navigation.arrived = true;
       burst(lead.x, lead.y - 55, '#e8d59c', 10);
+      onVisit(navigation.targetId);
     }
     const following = observing || touring || active || !!navigation;
     if (following && dist(lead, follower) > 100) {
@@ -1916,6 +1937,7 @@ export function createWorldEngine({
         push = Math.min(75 - separation, dt * 55);
       follower.x += ((follower.x - lead.x || 1) / separation) * push;
       follower.y += ((follower.y - lead.y) / separation) * push;
+    }
     }
     for (const r of (o?.resources || []).slice(0, 36)) {
       const key = r.id || r.kind + ':' + (r.path || r.url || r.title);
@@ -1942,6 +1964,11 @@ export function createWorldEngine({
       if (keys.has('arrowright') || keys.has('d')) camera.x += speed;
       if (keys.has('arrowup') || keys.has('w')) camera.y -= speed;
       if (keys.has('arrowdown') || keys.has('s')) camera.y += speed;
+    } else if (follow === 'pair' && pointers.size === 0) {
+      const a = companions.milo, b = companions.nova;
+      const easing = reduced() ? 1 : 1 - Math.exp(-dt * 4);
+      camera.x = lerp(camera.x, (a.x + b.x) / 2, easing);
+      camera.y = lerp(camera.y, (a.y + b.y) / 2 - 70, easing);
     } else if (companions[follow] && pointers.size === 0) {
       const p = companions[follow],
         easing = reduced() ? 1 : 1 - Math.exp(-dt * 4);
@@ -1954,7 +1981,8 @@ export function createWorldEngine({
       reduced() ? 1 : 1 - Math.exp(-dt * 10),
     );
     bounds();
-    const nextScene = [biomeAt(camera.x, camera.y), followOverride || settings.follow || 'milo', navigation?.targetId || '', !!navigation?.arrived, paused].join('|');
+    const activity = play.status();
+    const nextScene = [biomeAt(camera.x, camera.y), followOverride || settings.follow || 'milo', navigation?.targetId || '', !!navigation?.arrived, paused, activity?.id, activity?.phase].join('|');
     if (nextScene !== sceneSignature) { sceneSignature = nextScene; onScene(); }
     if (!paused)
       for (let i = particles.length - 1; i >= 0; i--) {
@@ -2025,20 +2053,24 @@ export function createWorldEngine({
     text(ctx, title, x, y + 1, size, ink);
   }
   function drawCompanion(p, agent, o, motion) {
-    const time = elapsed,
+    const time = motion ? elapsed : 0,
       active = running(o),
       working =
         active &&
         (o?.speakingAgent ? o.speakingAgent === p.id : o?.agent === p.id),
       factor = p.id === 'milo' ? 2.65 : 2.42;
-    const emote = p.emote && p.emote.until > time ? p.emote.kind : '';
+    const activity = play.status();
+    const playing = activity?.phase === 'playing' ? activity.id : '';
+    const emote = p.emote && p.emote.until > elapsed ? p.emote.kind : '';
     const bob = motion
       ? p.walking
         ? Math.abs(Math.sin(p.stride)) * 5
+        : playing === 'dance' ? Math.abs(Math.sin(time * 5 + (p.id === 'nova' ? 1 : 0))) * 13
+        : playing === 'highfive' ? Math.abs(Math.sin(time * 3)) * 8
         : emote === 'jump' ? Math.abs(Math.sin(time * 5)) * 19 : Math.sin(time * 2.3 + p.stride) * 1.4
       : 0;
     const blink = motion && (time + (p.id === 'milo' ? 0 : 2.3)) % 5.7 < 0.13;
-    const happy = emote || agent.mood === 'happy',
+    const happy = emote || playing || agent.mood === 'happy',
       sad = agent.mood === 'stressed' || o?.status === 'failed';
     const animal =
       ANIMALS.find(
@@ -2047,7 +2079,7 @@ export function createWorldEngine({
       ) || ANIMALS[p.id === 'milo' ? 0 : 2];
     const speaking = active && o?.speakingAgent === p.id;
     const pose = {
-      eyes: emote === 'snooze' ? 'sleep' : blink
+      eyes: emote === 'snooze' || playing === 'rest' ? 'sleep' : blink
         ? 'blink'
         : sad
           ? 'sad'
@@ -2061,7 +2093,7 @@ export function createWorldEngine({
       look: p.facing > 0 ? 1 : -1,
       tail: motion && Math.floor(time * (p.walking ? 5 : 2)) % 2,
       ear: motion && Math.floor(time * 1.7) % 2,
-      arms: (emote === 'wave' ? !motion || Math.floor(time * 4) % 2 : !!emote) || speaking,
+      arms: ['dance','highfive','bubbles'].includes(playing) || (emote === 'wave' ? !motion || Math.floor(time * 4) % 2 : !!emote) || speaking,
     };
     const sprite = getSprite(
       animal,
@@ -2087,11 +2119,17 @@ export function createWorldEngine({
           );
       }
     ctx.save();
+    // Rotate the whole sprite; keep its native 36:48 proportions in every pose.
+    const tilt = playing === 'rest' ? (p.id === 'milo' ? -.12 : .12)
+      : playing === 'dance' && motion ? Math.sin(time * 5 + (p.id === 'nova' ? Math.PI : 0)) * .12
+      : playing === 'read' ? (p.id === 'milo' ? .05 : -.05) : 0;
+    ctx.translate(p.x, p.y - bob);
+    ctx.rotate(tilt);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
       sprite,
-      Math.round(p.x - 18 * factor),
-      Math.round(p.y - 46 * factor - bob),
+      Math.round(-18 * factor),
+      Math.round(-46 * factor),
       36 * factor,
       48 * factor,
     );
@@ -2101,12 +2139,17 @@ export function createWorldEngine({
       : p.id === 'milo'
         ? '#f3ca93'
         : '#d5c4eb';
+    const channels = accent.match(/[\da-f]{2}/gi).map(value => {
+      const n = parseInt(value, 16) / 255;
+      return n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4;
+    });
+    const luminance = channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
     badge(
       String(agent.name || p.id).slice(0, 32),
       p.x,
       p.y + 26,
       accent,
-      '#354b45',
+      luminance > .4 ? '#354b45' : luminance > .179 ? '#000000' : '#ffffff',
       Math.min(17, Math.max(12, 12 / camera.zoom)),
     );
     if (working) {
@@ -2308,12 +2351,12 @@ export function createWorldEngine({
     );
     star(ctx, r.x + 14, y - 35, 5, '#fff1be');
   }
-  function drawWorld() {
+  function drawWorld(postcard = false) {
     if (!ctx || !canvas || !width || !height) return;
     if (!terrain) terrain = makeTerrain(world);
     const motion = !reduced() && !paused,
       t = reduced() ? 0 : elapsed,
-      o = getOuting(),
+      o = postcard ? null : getOuting(),
       agents = safeAgents();
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, width, height);
@@ -2352,7 +2395,7 @@ export function createWorldEngine({
         );
       }
     }
-    if (navigation) {
+    if (navigation && !postcard) {
       const walker = companions[navigation.actor];
       const points = [[walker.x, walker.y], ...(walker.target ? [[walker.target.x,walker.target.y]] : []), ...walker.path.map(p=>[p.x,p.y])];
       ctx.save(); ctx.setLineDash([7, 10]); line(ctx, points, '#fff4c6a3', 3 / Math.max(camera.zoom,0.3)); ctx.restore();
@@ -2367,11 +2410,12 @@ export function createWorldEngine({
       if (within(n)) drawables.push({ ...n, layer: 'npc', original: n });
     for (const e of world.enemies)
       if (within(e)) drawables.push({ ...e, layer: 'enemy', original: e });
-    for (const r of resourceSpots.values())
+    for (const r of postcard ? [] : resourceSpots.values())
       if (within(r)) drawables.push({ ...r, layer: 'resource' });
     for (const p of Object.values(companions))
       if (within(p)) drawables.push({ ...p, layer: 'pet', original: p });
     drawables.sort((a, b) => a.y - b.y);
+    drawPlayProps(ctx, play.status(), t, motion);
     visibleCount = drawables.length;
     for (const item of drawables) {
       if (item.layer === 'asset') {
@@ -2384,11 +2428,11 @@ export function createWorldEngine({
           item.kind === 'tree' &&
           Object.values(companions).some(
             (p) =>
-              Math.abs(p.x - item.x) < 66 * item.scale &&
+              Math.abs(p.x - item.x) < 90 * item.scale + 45 &&
               p.y < item.y + 5 &&
-              p.y > item.y - 145 * item.scale,
+              p.y > item.y - 210 * item.scale,
           );
-        if (occludesPet) ctx.globalAlpha = 0.32;
+        if (occludesPet) ctx.globalAlpha = postcard || play.status() ? 0.10 : 0.20;
         ctx.drawImage(
           sprite,
           item.x - (sprite.width / 2) * item.scale + sway,
@@ -2404,6 +2448,7 @@ export function createWorldEngine({
       else if (item.layer === 'enemy') drawEnemy(item.original, motion);
       else drawResource(item, motion);
     }
+    drawPlayProps(ctx, play.status(), t, motion, true);
     for (const p of particles) {
       ctx.globalAlpha = clamp(p.life / p.max, 0, 1);
       if (p.kind === 'star') star(ctx, p.x, p.y, 4, p.color);
@@ -2452,7 +2497,7 @@ export function createWorldEngine({
           i % 3 ? '#f0d9a680' : '#d8bee580',
         );
       }
-    const focus = hover || selected;
+    const focus = postcard ? null : hover || selected;
     if (focus && focus.x != null) {
       const fx = focus.drawX ?? focus.x,
         fy = focus.drawY ?? focus.y;
@@ -2469,7 +2514,7 @@ export function createWorldEngine({
       }
     ctx.restore();
     drawAtmosphere(motion);
-    drawHUD(o);
+    if (!postcard && !settings.cameraOnly) drawHUD(o);
     painted++;
   }
   function drawAtmosphere(motion) {
@@ -2805,7 +2850,7 @@ export function createWorldEngine({
       pointerStart?.id === e.pointerId
     ) {
       if (
-        minimap &&
+        !settings.cameraOnly && minimap &&
         p.x >= minimap.x &&
         p.x <= minimap.x + minimap.w &&
         p.y >= minimap.y &&
@@ -2815,7 +2860,7 @@ export function createWorldEngine({
           x: ((p.x - minimap.x) / minimap.w) * WIDTH,
           y: ((p.y - minimap.y) / minimap.h) * HEIGHT,
         });
-      else {
+      else if (!settings.cameraOnly) {
         const point = toWorld(p.x, p.y),
           target = hit(point);
         if (target) inspect(target);
@@ -2876,7 +2921,7 @@ export function createWorldEngine({
     } else if (key === 'home') {
       e.preventDefault();
       command('home');
-    } else if (key === 'enter') {
+    } else if (key === 'enter' && !settings.cameraOnly) {
       e.preventDefault();
       const closest = [
         ...world.landmarks,
@@ -2909,7 +2954,12 @@ export function createWorldEngine({
     if (!paused) elapsed += delta;
     frames++;
     update(delta);
-    drawWorld();
+    // Keep live state fresh while a paused scene uses much less drawing work.
+    // Pointer/keyboard camera movement and zoom still paint immediately.
+    if (!paused || pointers.size || keys.size || Math.abs(camera.zoom - camera.targetZoom) > .003 || time - lastPaint >= 250) {
+      drawWorld();
+      lastPaint = time;
+    }
     raf = requestAnimationFrame(frame);
   }
   function measure() {
@@ -2922,11 +2972,13 @@ export function createWorldEngine({
     canvas.height = Math.round(height * ratio);
     bounds();
     drawWorld();
+    onScene();
   }
   function detach() {
     globalThis.cancelAnimationFrame?.(raf);
     raf = 0;
     lastTime = 0;
+    lastPaint = 0;
     resize?.disconnect();
     resize = null;
     for (const off of cleanup) off();
@@ -2983,6 +3035,7 @@ export function createWorldEngine({
     if (!document.hidden) raf = requestAnimationFrame(frame);
   }
   function regenerate(seed) {
+    play.cancel(elapsed);
     world = generateWorld(seed);
     terrain = null;
     assetCache.clear();
@@ -3013,7 +3066,22 @@ export function createWorldEngine({
         camera.x = companions[id].x;
         camera.y = companions[id].y - 70;
       }
-    } else if (type === 'zoom')
+    } else if (type === 'frame-pair') {
+      followOverride = 'pair';
+      const a = companions.milo, b = companions.nova;
+      camera.x = (a.x + b.x) / 2;
+      camera.y = (a.y + b.y) / 2 - 70;
+      const crop = postcardCrop(width, height, payload.format);
+      camera.targetZoom = clamp(Math.min(crop.width / (Math.abs(a.x - b.x) + 240), crop.height / (Math.abs(a.y - b.y) + 290)), MIN_ZOOM, 1.6);
+      camera.zoom = camera.targetZoom;
+    } else if (type === 'play') {
+      if (play.start(payload.kind, elapsed, payload.agent)) {
+        paused = false;
+        followOverride = 'pair';
+        camera.targetZoom = Math.min(1.2, Math.max(.65, width / 800));
+      }
+    } else if (type === 'stop-play') play.cancel(elapsed);
+    else if (type === 'zoom')
       camera.targetZoom = clamp(
         Number.isFinite(Number(payload.value))
           ? Number(payload.value)
@@ -3047,6 +3115,7 @@ export function createWorldEngine({
     } else if (type === 'walk-to') {
       walkTo(payload);
     } else if (type === 'resume-walk') {
+      play.cancel(elapsed);
       navigation = null;
       for (const p of Object.values(companions)) { p.target = null; p.path = []; p.stop = 0; }
     } else if (type === 'travel') {
@@ -3062,6 +3131,7 @@ export function createWorldEngine({
       const creature = world.enemies.find(item => item.id === payload.id);
       if (creature) { creature.friendlyUntil = elapsed + 8; burst(creature.x,creature.y-34,'#f0d5a6',16); }
     } else if (type === 'tour') {
+      play.cancel(elapsed);
       touring = payload.active !== false;
       navigation = null;
       waypoint = 0;
@@ -3123,9 +3193,12 @@ export function createWorldEngine({
       following: followOverride || settings.follow || 'milo',
       route: routeForOuting(getOuting()),
       navigation: navigation ? { ...navigation } : null,
+      play: play.status(),
+      particles: particles.length,
     };
   }
   function destroy() {
+    play.cancel(elapsed);
     detach();
     dead = true;
     terrain = null;
@@ -3133,5 +3206,29 @@ export function createWorldEngine({
     resourceSpots.clear();
     particles.length = 0;
   }
-  return { mount, command, destroy, metrics, directory };
+  async function capture({ format = 'landscape', caption = 'A little moment in the Wilds' } = {}) {
+    if (!canvas || !ctx) throw new Error('Open the Wilds before making a postcard.');
+    const crop = postcardCrop(canvas.width, canvas.height, format);
+    const image = document.createElement('canvas');
+    // Bound memory even on very large desktop displays; preserve the chosen ratio.
+    const scale = Math.min(1, 1600 / Math.max(crop.width, crop.height));
+    image.width = Math.max(1, Math.round(crop.width * scale));
+    image.height = Math.max(1, Math.round(crop.height * scale));
+    const paint = image.getContext('2d');
+    if (!paint) throw new Error('Your browser could not create the postcard.');
+    drawWorld(true);
+    paint.drawImage(canvas, crop.x, crop.y, crop.width, crop.height, 0, 0, image.width, image.height);
+    drawWorld();
+    const size = Math.max(10, Math.min(22, image.width / 34)), footer = Math.max(44, size * 3.8);
+    paint.fillStyle = '#fff8e7f2'; paint.fillRect(0, image.height - footer, image.width, footer);
+    paint.textAlign = 'center'; paint.textBaseline = 'middle';
+    paint.fillStyle = '#354c3e'; paint.font = `600 ${size}px system-ui`;
+    paint.fillText(String(caption).slice(0, 90), image.width / 2, image.height - footer * .63, image.width - 30);
+    paint.fillStyle = '#67755e'; paint.font = `${Math.max(9, size * .55)}px system-ui`;
+    paint.fillText('DISTILL PETS AI STUDIO · THE LIVING WILDS', image.width / 2, image.height - footer * .25, image.width - 30);
+    const blob = await new Promise(resolve => image.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('The postcard could not be rendered. Try again.');
+    return blob;
+  }
+  return { mount, command, destroy, metrics, directory, capture };
 }

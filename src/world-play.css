@@ -1,0 +1,105 @@
+.world-playbook { display:grid; gap:16px; min-width:0; }
+.world-playbook h3, .world-playbook h4, .world-playbook p { margin:0; }
+.playbook-welcome { display:flex; align-items:center; gap:14px; }
+.playbook-welcome h3 { font-size:23px; line-height:1.15; letter-spacing:-.035em; margin:5px 0 7px; }
+.playbook-welcome p { font-size:12px; line-height:1.5; color:var(--muted); }
+.playbook-flower { flex:0 0 52px; width:52px; height:62px; display:grid; place-items:center; font-size:39px; color:#a86d35; background:#fae5b7; border-radius:45% 45% 40% 40%; animation:playbook-welcome 5s ease-in-out infinite; }
+.playbook-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--line); background:var(--paper2); border-radius:16px; padding:13px 4px; }
+.playbook-stats span { text-align:center; font-size:10px; color:var(--muted); }
+.playbook-stats span+span { border-left:1px solid var(--line); }
+.playbook-stats b { display:block; color:var(--ink); font-size:23px; line-height:1.3; font-variant-numeric:tabular-nums; }
+.playbook-activities { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.adventure .playbook-activity { position:relative; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:15px 13px; text-align:left; background:var(--paper2); border:1px solid var(--line); border-radius:17px; transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+.playbook-activity>span { height:35px; display:grid; place-items:center; font-size:28px; color:var(--ink); transform-origin:50% 80%; }
+.playbook-activity b { font-size:13px; line-height:1.35; }
+.playbook-activity small { font-size:11px; line-height:1.5; color:var(--muted); }
+.playbook-activity i { position:absolute; top:10px; right:10px; color:var(--green); font-style:normal; }
+.playbook-current { display:grid; gap:8px; font-size:13px; color:var(--muted); }
+.playbook-current button { justify-self:start; }
+.playbook-camera { display:grid; grid-template-columns:38px 1fr; gap:10px; padding:17px; border:1px solid var(--line); border-radius:18px; background:var(--paper2); }
+.playbook-camera>span { font-size:32px; color:var(--muted); }
+.playbook-camera h3 { font-size:15px; margin-bottom:6px; }
+.playbook-camera p { font-size:12px; line-height:1.5; color:var(--muted); }
+.playbook-camera button { grid-column:1/-1; margin-top:5px; }
+.playbook-trails { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.adventure .playbook-trail { display:grid; grid-template-columns:23px 1fr; gap:5px 7px; align-items:center; text-align:left; min-width:0; padding:12px 10px; background:var(--paper2); border:1px solid var(--line); border-radius:15px; }
+.playbook-trail>span { grid-row:span 2; font-size:23px; }
+.playbook-trail b { font-size:11px; line-height:1.4; }
+.playbook-trail small { grid-column:2; font-size:10px; color:var(--muted); }
+.playbook-trail[aria-pressed='true'] { outline:2px solid var(--blue); outline-offset:-2px; }
+.playbook-trail-card { display:grid; grid-template-columns:56px 1fr; gap:13px; padding:16px; border:1px solid var(--line); border-radius:18px; }
+.playbook-trail-card h4 { font-size:16px; }
+.playbook-trail-card p { color:var(--muted); font-size:12px; line-height:1.55; margin-top:6px; }
+.playbook-stamp { width:56px; height:62px; display:grid; place-items:center; font-size:32px; color:var(--muted); border:2px dashed var(--line); border-radius:50% 50% 42% 42%; background:var(--paper2); transform:rotate(-7deg); }
+.playbook-stamp.is-earned { border:2px solid #6e8a5d; color:#365136; background:#e9efda; box-shadow:inset 0 0 0 4px #fff9e6; }
+.playbook-trail-card ol { grid-column:1/-1; padding:0; margin:0; list-style:none; display:grid; gap:9px; }
+.playbook-trail-card li { display:flex; gap:9px; font-size:12px; color:var(--muted); line-height:1.5; }
+.playbook-trail-card .is-reached { color:var(--ink); }
+.playbook-trail-card li span { width:19px; flex-shrink:0; }
+.playbook-trail-card>button { grid-column:1/-1; text-wrap:balance; }
+.playbook-journal { padding:0; margin:0; list-style:none; display:grid; }
+.playbook-journal li { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+.playbook-journal li>span { display:grid; place-items:center; width:32px; height:36px; flex-shrink:0; background:var(--paper2); border-radius:11px; color:var(--muted); }
+.playbook-journal b { display:block; font-size:12px; line-height:1.4; overflow-wrap:anywhere; }
+.playbook-journal time, .playbook-journal p { font-size:11px; line-height:1.5; color:var(--muted); }
+.world-play-status { position:absolute; z-index:8; top:129px; left:24px; display:flex; align-items:center; gap:12px; max-width:min(375px,calc(100% - 100px)); background:#fff8e9f5; color:#374d3c; border:1px solid #d0d7b9; border-radius:20px 20px 20px 5px; padding:13px; box-shadow:0 8px 25px #29462518; }
+.world-play-status[hidden], .world-moment-toast[hidden], .world-photo-controls[hidden] { display:none!important; }
+.world-play-status b, .world-play-status small { display:block; }
+.world-play-status b { font-size:15px; line-height:1.4; }
+.world-play-status small { margin-top:5px; font-size:11px; line-height:1.4; color:#66765d; }
+.world-play-status button { flex:0 0 44px; background:#edeedb; color:#3b523d; padding:0; border:0; border-radius:14px; font-size:23px; }
+.play-status-flower { font-size:30px; color:#ad783e; animation:playbook-welcome 4s ease-in-out infinite; }
+.is-playing .world-quest { visibility:hidden; pointer-events:none; }
+.world-moment-toast { position:absolute; z-index:14; pointer-events:none; max-width:min(410px,calc(100% - 40px)); bottom:calc(205px + env(safe-area-inset-bottom)); left:24px; padding:13px 16px; border:1px solid #d7cfae; border-radius:16px; background:#fff5dfee; color:#48553c; box-shadow:0 7px 25px #304b2518; font-size:12px; line-height:1.5; animation:playbook-arrive .3s ease-out; }
+.is-photo-mode > :not(#world-canvas):not(.world-photo-controls):not(.world-sr-only) { display:none!important; }
+.world-photo-controls { position:absolute; z-index:15; inset:0; pointer-events:none; }
+.world-photo-frame { position:absolute; outline:1px solid #fff5ddcc; box-shadow:0 0 0 200vmax #233c3450; }
+.world-photo-frame:before, .world-photo-frame:after { content:''; position:absolute; inset:0 33.333%; border-left:1px solid #ffffff25; border-right:1px solid #ffffff25; }
+.world-photo-frame:after { inset:33.333% 0; border:0; border-top:1px solid #ffffff25; border-bottom:1px solid #ffffff25; }
+.world-photo-frame>span { position:absolute; left:14px; top:13px; color:#fff8df; font-size:9px; letter-spacing:.12em; text-shadow:0 1px 3px #243929; }
+.world-photo-top { position:absolute; top:max(16px,env(safe-area-inset-top)); left:max(16px,env(safe-area-inset-left)); right:max(16px,env(safe-area-inset-right)); display:flex; gap:8px; align-items:center; }
+.world-photo-top button { pointer-events:auto; background:#fff8e9f2; border:1px solid #d5dabd; color:#354d3d; font-size:12px; border-radius:16px; padding:10px 14px; }
+.world-photo-top button:first-child { margin-right:auto; }
+.world-photo-bottom { position:absolute; pointer-events:auto; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(710px,calc(100% - 32px)); display:grid; grid-template-columns:minmax(0,1fr) 160px 155px; align-items:end; gap:10px; padding:16px; border-radius:21px; border:1px solid #d0d6bc; background:#fff9eaf5; box-shadow:0 5px 25px #28462a25; color:#354d3d; }
+.world-photo-bottom label { display:block; font-size:11px; font-weight:650; margin-bottom:6px; }
+.world-photo-bottom input, .world-photo-bottom select { display:block; min-width:0; width:100%; height:44px; border:1px solid #cdd5b6; border-radius:12px; color:#354d3d; background:#fffdf6; padding:9px; font-size:16px; }
+.world-photo-bottom .primary { border:1px solid #354f3b; background:#354f3b; color:#fff9e6; height:auto; min-height:44px; border-radius:12px; font-size:12px; line-height:1.4; }
+.world-photo-bottom p { grid-column:1/-1; margin:0; font-size:10px; line-height:1.5; color:#66745d; }
+.world-postcard-preview { display:block; max-width:100%; max-height:65dvh; width:auto; height:auto; margin:16px auto; border-radius:15px; border:1px solid var(--line); }
+.adventure button:focus-visible, .world-photo-bottom :is(input,select):focus-visible { outline:3px solid var(--blue,#1677ff); outline-offset:3px; }
+@keyframes playbook-welcome { 0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg) translateY(-3px)} }
+@keyframes playbook-arrive { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
+@media(hover:hover) and (prefers-reduced-motion:no-preference) {
+  .playbook-activity:not(:disabled):hover { transform:translateY(-3px); box-shadow:0 6px 0 var(--line); }
+  .playbook-activity:not(:disabled):hover>span { animation:playbook-welcome .6s ease-in-out infinite; }
+  .adventure[data-gentle='true'] .playbook-activity:hover { transform:none; }
+}
+@media(max-width:760px) {
+  .world-play-status { left:13px; top:max(117px,calc(env(safe-area-inset-top) + 104px)); padding:11px; gap:8px; }
+  .world-play-status b { font-size:13px; }
+  .world-play-status small { font-size:10px; }
+  .play-status-flower { display:none; }
+  .world-moment-toast { bottom:calc(150px + env(safe-area-inset-bottom)); left:13px; max-width:calc(100% - 26px); }
+  .world-photo-top { left:max(12px,env(safe-area-inset-left)); right:max(12px,env(safe-area-inset-right)); gap:6px; }
+  .world-photo-top button { padding:8px; font-size:11px; max-width:40%; }
+  .world-photo-bottom { grid-template-columns:1fr 1fr; padding:12px; gap:8px; width:calc(100% - 24px); bottom:max(12px,env(safe-area-inset-bottom)); }
+  .world-photo-bottom>div:first-child { grid-column:1/-1; }
+  .world-photo-bottom p { font-size:10px; }
+}
+@media(max-width:360px) {
+  .world-bottom { left:4px; right:4px; }
+  .world-tabs { padding:1px; gap:0; }
+  .world-tabs button { flex:1 1 0; min-width:44px; }
+  .world-tabs small { font-size:8px; }
+}
+@media(max-height:500px) and (orientation:landscape) {
+  .world-play-status { top:85px; max-width:250px; }
+  .world-moment-toast { bottom:85px; max-width:240px; }
+  .world-photo-bottom { width:calc(100% - 24px); padding:10px; grid-template-columns:minmax(0,1fr) 145px 135px; }
+  .world-photo-bottom>div:first-child { grid-column:auto; }
+  .world-photo-bottom p { display:none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .playbook-flower, .play-status-flower, .world-moment-toast { animation:none; }
+  .playbook-activity { transition:none; }
+}

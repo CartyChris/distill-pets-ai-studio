@@ -29,6 +29,7 @@ jobs:
             sleep 1
           done
           APP_URL=http://127.0.0.1:5194 npm run test:browser:core
+          APP_URL=http://127.0.0.1:5194 npm run test:browser:play
   rust:
     runs-on: ubuntu-latest
     steps:

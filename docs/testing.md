@@ -104,3 +104,23 @@ The optional `python3 training/smoke_test.py` (after installing the training
 requirements) builds a tiny random model locally and performs one real CPU LoRA
 optimizer step, verifies changed adapter tensors and rejects overwriting results.
 It does not download a model, use hosted credits or test model quality.
+
+## Wilds play and postcards 0.5
+
+`npm run test:features` includes `tests/world-play-unit.mjs`: imported state bounds,
+real landmark IDs, deduplicated arrivals, trail completion, all six activity
+lifecycles, saved walking routes, pause/cancel, and proportional export crops.
+
+After building and starting the production server:
+
+```sh
+APP_URL=http://127.0.0.1:3000 npm run test:browser:play
+```
+
+This exercises the real application: gathering, completion, pause/cancel,
+arrival-only stamps, reload persistence, journal JSON downloads, real PNG bytes
+and dimensions for all three formats, keyboard camera exit, reduced motion and
+seven layouts from 320-pixel phones to desktop. It asserts that none of these
+actions calls the inference API. CI runs this alongside the real WASM integration.
+`tests/world-evolution-browser.mjs` still verifies the existing practice, guide,
+atlas, actual transcript and cleanup behaviors against the development server.

@@ -1,10 +1,13 @@
 # Further upgrade plan for Astra
 
-Status: 0.4.0 already implements the Rust/WASM worker, JS fallback, recursive
+Status: the current 0.5.0 includes the 0.4 Rust/WASM worker, JS fallback, recursive
 teaching, diagnostics, curriculum starters, reviewed ZIPs and Python audit/LoRA
 tools. Preserve them and extend from docs/learning-core.md. React/mobile framework
 migration and Vercel hosting are still future work. The items below are a roadmap,
 not a claim that every proposed component has been built.
+
+The 0.5 Wilds play system, journal, trails and real PNG camera are also implemented.
+Preserve these and their browser checks when improving the shell or Canvas adapter.
 
 ## 1. Establish the integration baseline
 

@@ -1,11 +1,11 @@
 # Paste this into Astra inside my existing Vercel v0 project
 
-You are upgrading **Distill Pets AI Studio** using the complete 0.4.0
+You are upgrading **Distill Pets AI Studio** using the complete 0.5.0
 source and handoff in this imported repository. Work inside my existing v0 project, use its available
 Astra/vmax configuration, and carry the work through implementation, verification,
 and full-stack production deployment to my connected Vercel project. Do not stop
-at a mockup, static frontend, or plan. These are instructions for future work;
-the working app has intentionally been left unchanged for this handoff.
+at a mockup, static frontend, or plan. These are instructions for the next migration;
+the repository already contains the working 0.5.0 app.
 
 First read START_HERE.md and all handoff documents. Inspect the existing v0
 project’s framework, routes, auth, storage, dependencies and design conventions.
@@ -23,6 +23,12 @@ soft customizable palette, Milo/Nova personalities and large explorable Wilds.
 Use a refined contemporary design with deliberate hierarchy and restrained motion.
 Treat theme variables, spacing, geometry, typography and motion as a coherent
 design system, not scattered hard-coded decoration.
+
+Preserve the Wilds Play panel, six coordinated pet activities, four trails,
+arrival-only stamps, bounded field journal and landscape/square/portrait PNG
+postcards. Keep scenic play independent from real AI output and evaluation.
+Keep sprite proportions during animation and reduced-motion alternatives.
+Read docs/wilds-play.md and run tests/world-play-browser.mjs after integrating.
 
 Build a persistent React application shell: a compact mobile top bar, a small
 set of primary bottom tabs, a searchable More/command surface exposing every

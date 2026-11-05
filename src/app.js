@@ -332,7 +332,7 @@ function petsPage() {
     })
     .join(
       ''
-    )}</div><div class="notice" style="margin-top:20px">Pets are playful companions. Treats and play change their mood; lessons change the instructions they receive. To give a pet a learned approach, equip a chip from the model library.</div>`;
+    )}</div><div class="card" style="margin-top:20px"><span class="eyebrow">A LITTLE TIME TOGETHER</span><h2>Take the fun outside.</h2><p class="help">Pack a pocket picnic, share a story, dance among the flowers, and make a postcard in the Wilds. Your nature-walk passport remembers the places you reach.</p><div class="row">${button('play-world','♡ Open the play corner','blue')}${button('field-open','Dress up the duo')}</div></div><div class="notice" style="margin-top:20px">Pets are playful companions. Treats and play change their mood; lessons change the instructions they receive. To give a pet a learned approach, equip a chip from the model library.</div>`;
 }
 function modelOptions(current) {
   const filtered = models.filter(m =>
@@ -981,6 +981,7 @@ async function onAction(event) {
   if (action.startsWith('wilds-')) return wilds.action(action, el);
   if (action.startsWith('custom-')) return customizer.action(action, el);
   if (action.startsWith('world-')) return adventure.action(action, el.dataset);
+  if (action === 'play-world') { db.adventure.panel = 'play'; db.adventure.panelOpen = true; page = 'adventure'; save(); render(); return; }
   if (action === 'field-open') return openModal(`<h2 id="modal-title">Personalities & field kit</h2>${fieldKit.view()}`);
   if (action.startsWith('field-')) return fieldKit.action(action, el.dataset);
   if (action === 'views') return openModal(`<h2 id="modal-title">Explore Distill Pets AI Studio</h2><p class="help">Choose a view. Your agents keep working while you explore.</p><div class="view-picker">${navigation()}</div>`);

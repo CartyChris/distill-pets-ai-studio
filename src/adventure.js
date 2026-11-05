@@ -1,6 +1,9 @@
 import { animate } from 'motion/mini';
 import { createWorldEngine, WORLD_BIOMES } from './world-engine.js';
+import { cleanPlaybook, PLAY_ACTIVITIES, FIELD_TRAILS, recordMoment, trailProgress, postcardCrop } from './playbook.js';
+import { playPanel } from './play-panel.js';
 import './adventure.css';
+import './world-play.css';
 
 const BIOMES = Object.fromEntries(
   Object.entries(WORLD_BIOMES).map(([id, biome]) => [id, biome.title]),
@@ -28,6 +31,7 @@ const TABS = {
   results: ['▤', 'Results'],
   dialogue: ['☏', 'Team chat'],
   steer: ['➤', 'Guide'],
+  play: ['♡', 'Play'],
   field: ['♧', 'Field kit'],
   world: ['☼', 'World'],
 };
@@ -41,11 +45,17 @@ export function createAdventure(d) {
     lastDialogue = '',
     lastGuidance = '',
     placeSearch = '',
-    placeFilter = 'landmark';
+    placeFilter = 'landmark',
+    photoMode = false,
+    photoURL = '',
+    photoBusy = false,
+    momentTimer;
+  const book = () => state().playbook || (state().playbook = cleanPlaybook());
   const engine = createWorldEngine({
     getState: () => ({
       ...state(),
       overlayHUD: true,
+      cameraOnly: photoMode,
       motion:
         d.getDB().appearance.motion === 'reduced' ||
         matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -65,6 +75,8 @@ export function createAdventure(d) {
     },
     onSelect: (item) => inspect(item),
     onScene: () => refreshScene(),
+    onPlay: id => remember('play', id),
+    onVisit: id => remember('visit', id),
   });
   const currentRun = () => {
     const s = d.getDB().studio;
@@ -89,15 +101,49 @@ export function createAdventure(d) {
     const status = document.querySelector('[data-world-camera-status]');
     if (status) status.textContent = message;
   }
+  function remember(kind, id) {
+    const before = new Set(FIELD_TRAILS.filter(t => trailProgress(book(),t.id).complete === 3).map(t => t.id));
+    if (!recordMoment(book(), kind, id)) return;
+    d.save();
+    const earned = FIELD_TRAILS.find(t => !before.has(t.id) && trailProgress(book(),t.id).complete === 3);
+    const title = kind === 'visit' ? `A new little memory: ${engine.directory().find(p => p.id === id)?.title || 'a landmark'}.`
+      : kind === 'play' ? `${PLAY_ACTIVITIES.find(a => a.id === id)?.title || 'A play break'} · tucked into your journal.` : 'Your postcard is ready to keep.';
+    const message = earned ? `${earned.badge} stamp earned!` : title;
+    const note = document.querySelector('[data-world-moment]');
+    if (note) { note.textContent = `♡ ${message}`; note.hidden = false; clearTimeout(momentTimer); momentTimer = setTimeout(() => { note.hidden = true; }, 5500); }
+    announce(message);
+    if (state().panel === 'play') renderPanel(true);
+  }
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = name; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+  function refreshPhoto() {
+    const root = document.getElementById('adventure-root');
+    if (!root) return;
+    root.classList.toggle('is-photo-mode', photoMode);
+    const controls = root.querySelector('[data-world-photo-controls]');
+    controls.hidden = !photoMode;
+    if (!photoMode) return;
+    const bounds = root.getBoundingClientRect(), crop = postcardCrop(bounds.width,bounds.height,book().format);
+    const frame = root.querySelector('.world-photo-frame');
+    for (const [name, value] of Object.entries({ left: crop.x, top: crop.y, width: crop.width, height: crop.height })) frame.style[name] = `${value}px`;
+    root.querySelector('#world-photo-format').value = book().format;
+  }
   function refreshScene() {
     const root = document.getElementById('adventure-root');
     if (!root) return;
     const m = engine.metrics(), nav = m.navigation;
+    root.classList.toggle('is-playing', !!m.play);
+    const activity = root.querySelector('[data-world-activity]');
+    if (activity) { activity.hidden = !m.play; if (m.play) { activity.querySelector('b').textContent = m.play.title; activity.querySelector('small').textContent = m.paused ? 'Scenery paused · resume with the play button.' : m.play.phase === 'gathering' ? 'Little paws are coming together…' : 'A little play break · AI work continues.'; } }
     root.dataset.gentle = String(reduced() || state().motion === 'reduced');
     root.querySelector('[data-world-location]').textContent = BIOMES[m.biome] || BIOMES[state().biome];
     root.querySelectorAll('.world-companion').forEach(el => el.setAttribute('aria-pressed', String(m.following === el.dataset.agent)));
     const path = root.querySelector('[data-world-walk]');
     if (path) { path.hidden = !nav; if (nav) { path.querySelector('b').textContent = `${nav.arrived ? 'A little stop at' : 'Walking to'} ${nav.title}`; path.querySelector('small').textContent = nav.arrived ? 'Enjoy the view, inspect a landmark, or continue the walk.' : 'Scenic walking · model results stay in the live journal.'; } }
+    refreshPhoto();
   }
   function placeCards() {
     const query = placeSearch.trim().toLowerCase();
@@ -128,6 +174,8 @@ export function createAdventure(d) {
       <aside class="world-quest"><span class="world-eyebrow">YOUR LITTLE EXPEDITION</span><b data-world-quest>A whole world of little “aha!” moments.</b><span data-world-status>Companions are enjoying a little idle wandering.</span><div class="world-quest-actions">${btn('world-tab', '⚑ Send on an outing', '', 'data-tab="mission"')}${btn('world-tab', '➤ Guide the team', '', 'data-tab="steer"')}${btn('world-open-places', '♧ Field atlas')}</div></aside>
       <div class="world-camera-tools">${btn('world-zoom-in', '+', 'world-icon', 'aria-label="Zoom in"')}${btn('world-zoom-out', '−', 'world-icon', 'aria-label="Zoom out"')}${btn('world-home', '⌂', 'world-icon', 'aria-label="Return camera to camp"')}${btn('world-fit', '▧', 'world-icon', 'aria-label="View whole map"')}${btn('world-tour', '⌕', 'world-icon', 'aria-label="Tour the world"')}${btn('world-pause', 'Ⅱ', 'world-icon', 'aria-label="Pause scenery" data-world-pause')}</div>
       <div class="world-walk-route" data-world-walk hidden><span aria-hidden="true">⌁</span><div><b></b><small></small></div>${btn('world-resume-walk', 'Continue', '', 'aria-label="Continue the scenic adventure"')}</div>
+      <div class="world-play-status" data-world-activity hidden><span class="play-status-flower" aria-hidden="true">✿</span><div><b></b><small></small></div>${btn('world-stop-play', '×', '', 'aria-label="Finish play break"')}</div>
+      <div class="world-moment-toast" data-world-moment hidden></div>
       <p class="world-sr-only" data-world-camera-status role="status" aria-live="polite"></p>
       <div class="world-companions">${['milo', 'nova'].map((id) => `<button data-action="world-follow" data-agent="${id}" class="world-companion" aria-label="Follow ${h(d.getDB().agents[id].name)}">${mascot(id, false, true)}<span><b data-world-name="${id}">${h(d.getDB().agents[id].name)}</b><small data-world-role="${id}">${id === (outing()?.agent || state().agent) ? 'Lead / teacher model' : 'Student / companion'}</small></span><i>⌕</i></button>`).join('')}</div>
       <div class="world-bottom"><div class="world-legend"><span>✦ <b data-world-discoveries>${state().visited.length}</b> scenery discoveries</span><small>Drag to explore · tap a character or landmark</small></div><nav class="world-tabs" aria-label="World panels">${Object.entries(
@@ -144,6 +192,11 @@ export function createAdventure(d) {
         .join('')}</nav></div>
       <aside id="world-panel" class="world-panel" aria-label="Adventure inspector" ${state().panelOpen ? '' : 'hidden'}><header><div><span class="world-eyebrow">A WINDOW INTO THE WORK</span><h2 id="world-panel-title"></h2></div>${btn('world-close-panel', '×', 'world-icon', 'aria-label="Close world panel"')}</header><div id="world-panel-body"></div></aside>
       <div class="world-footnote">A living illustration of your team’s work. AI runs when you launch an outing.</div>
+      <section class="world-photo-controls" data-world-photo-controls aria-label="Postcard camera" hidden>
+        <div class="world-photo-frame" aria-hidden="true"><span>A LITTLE MOMENT IN THE WILDS</span></div>
+        <div class="world-photo-top">${btn('world-photo-close','↩ Back to the Wilds')}${btn('world-photo-frame','Frame the duo')}${btn('world-photo-pose','✦ Say berries!')}</div>
+        <form class="world-photo-bottom" id="world-photo-form"><div><label for="world-photo-caption">Postcard caption</label><input id="world-photo-caption" maxlength="90" value="${h(d.getDB().agents.milo.name + ' & ' + d.getDB().agents.nova.name + ' · a little adventure')}" autocomplete="off"></div><div><label for="world-photo-format">Frame</label><select id="world-photo-format"><option value="landscape">Landscape · 16:9</option><option value="square">Square · 1:1</option><option value="portrait">Portrait · 9:16</option></select></div>${btn('world-photo-save','▣ Make postcard','primary','type="submit"')}<p>Drag to frame · pinch to zoom. Postcards include scenery and pet names; live responses and resource cards stay private.</p></form>
+      </section>
     </section>`;
   }
   function mission() {
@@ -170,6 +223,7 @@ export function createAdventure(d) {
       r = outing();
     if (a.panel === 'mission') return mission();
     if (a.panel === 'field') return d.fieldKit.view();
+    if (a.panel === 'play') return playPanel({book:book(),agents:d.getAgents(),places:engine.directory(),activity:engine.metrics().play,escape:h,button:btn});
     if (a.panel === 'results')
       return `<div class="world-result-meta"><span>${r?.demo ? 'Prepared playground output' : r ? 'Returned model output' : 'No model run yet'}</span><small>${h(r?.model || '')}</small></div><pre id="world-response" class="world-response"></pre><div class="world-actions">${btn('world-copy', 'Copy result', '', !output() ? 'disabled' : '')}${btn('world-chip', 'Distill a model chip', 'blue', !r || r.status !== 'complete' || d.getBusy() ? 'disabled' : '')}${r ? btn('world-open-result', 'Open full result') : ''}</div><h3 class="world-section-title">Brought back from the outing</h3><div id="world-resources"></div>`;
     if (a.panel === 'dialogue')
@@ -252,6 +306,7 @@ export function createAdventure(d) {
         'aria-label',
         a.paused ? 'Resume scenery' : 'Pause scenery',
       );
+    root.querySelector('[data-world-pause]').textContent = a.paused ? '▶' : 'Ⅱ';
     root
       .querySelectorAll('[data-world-name]')
       .forEach(
@@ -335,6 +390,8 @@ export function createAdventure(d) {
   function mount() {
     const canvas = document.getElementById('world-canvas');
     if (!canvas) {
+      photoMode = false;
+      clearTimeout(momentTimer);
       engine.mount(null);
       lastPanel = '';
       return;
@@ -359,7 +416,36 @@ export function createAdventure(d) {
   async function action(name, data = {}) {
     data = data.dataset || data;
     const a = state();
-    if (name === 'world-tab') {
+    if (name === 'world-play') {
+      const result = engine.command('play', {kind:data.kind,agent:a.agent});
+      if (!result.play) return;
+      a.paused = result.paused;
+      a.panelOpen = false; renderPanel(); refresh();
+      document.getElementById('world-canvas')?.focus({preventScroll:true});
+      announce(`The companions are coming together for ${result.play.title.toLowerCase()}.`);
+    } else if (name === 'world-stop-play') {
+      engine.command('stop-play'); refresh(); if(a.panel === 'play') renderPanel(true);
+      announce('The companions return to their walk.');
+    } else if (name === 'world-trail' && FIELD_TRAILS.some(t=>t.id===data.trail)) {
+      book().trail = data.trail; d.save(); renderPanel(true);
+      document.querySelector(`[data-action="world-trail"][data-trail="${data.trail}"]`)?.focus({preventScroll:true});
+    } else if (name === 'world-journal-export') {
+      downloadBlob(new Blob([JSON.stringify({ app:'Distill Pets AI Studio', kind:'scenic-field-journal', note:'Cosmetic memories, not model training or evaluation evidence.', ...book() },null,2)],{type:'application/json'}),'distill-pets-field-journal.json');
+    } else if (name === 'world-photo') {
+      photoMode = true; refreshPhoto(); engine.command('frame-pair',{format:book().format});
+      document.querySelector('[data-action="world-photo-close"]')?.focus({preventScroll:true});
+      announce('Postcard camera open. Frame your companions and make a PNG keepsake.');
+    } else if (name === 'world-photo-close') {
+      photoMode = false; refreshPhoto();
+      (document.querySelector('[data-action="world-photo"]') || document.getElementById('world-canvas'))?.focus({preventScroll:true});
+    } else if (name === 'world-photo-frame') engine.command('frame-pair',{format:book().format});
+    else if (name === 'world-photo-pose') {
+      for (const agent of ['milo','nova']) engine.command('emote',{agent,kind:'wave'});
+      announce('A little wave for the postcard.');
+    } else if (name === 'world-photo-save') {
+      // The form submit handler owns this action, including keyboard submission.
+      return;
+    } else if (name === 'world-tab') {
       if (!TABS[data.tab]) return;
       a.panel = data.tab;
       a.panelOpen = true;
@@ -502,6 +588,24 @@ export function createAdventure(d) {
     }
   }
   document.addEventListener('submit', async (e) => {
+    if (e.target.id === 'world-photo-form') {
+      e.preventDefault();
+      if (photoBusy) return;
+      photoBusy = true;
+      const button = e.target.querySelector('[data-action="world-photo-save"]');
+      button.disabled = true; button.textContent = 'Making a little memory…';
+      try {
+        const format = book().format;
+        const caption = document.getElementById('world-photo-caption').value.trim() || 'A little moment in the Wilds';
+        const blob = await engine.capture({format,caption});
+        if (photoURL) URL.revokeObjectURL(photoURL);
+        photoURL = URL.createObjectURL(blob);
+        remember('photo',format);
+        d.openModal(`<h2 id="modal-title">A little moment to keep.</h2><img class="world-postcard-preview" src="${photoURL}" alt="${h(caption)}"><p class="help">Your actual world, captured as a PNG. On iPhone, open the image and use Share → Save Image.</p><div class="row"><a class="button" href="${photoURL}" download="distill-pets-wilds-${format}.png">Download PNG</a><a class="button" href="${photoURL}" target="_blank" rel="noopener">Open image</a>${btn('close','Keep exploring')}</div>`);
+      } catch(err) { d.toast(err.message || 'The postcard could not be made. Please try again.'); }
+      finally { photoBusy = false; button.disabled = false; button.textContent = '▣ Make postcard'; }
+      return;
+    }
     if (e.target.id !== 'world-guide-form') return;
     e.preventDefault();
     const input = document.getElementById('world-guide-input'),
@@ -526,6 +630,11 @@ export function createAdventure(d) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(d.save, 250);
   });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && photoMode && !document.getElementById('modal')?.open) {
+      e.preventDefault(); action('world-photo-close');
+    }
+  });
   document.addEventListener('change', (e) => {
     const t = e.target,
       a = state();
@@ -537,7 +646,10 @@ export function createAdventure(d) {
       'world-weather': 'weather',
       'world-seed': 'seed',
     };
-    if (fields[t.id]) {
+    if (t.id === 'world-photo-format') {
+      if (!['landscape','square','portrait'].includes(t.value)) return;
+      book().format = t.value; d.save(); refreshPhoto(); engine.command('frame-pair',{format:t.value});
+    } else if (fields[t.id]) {
       a[fields[t.id]] = t.value.slice(0, t.id === 'world-seed' ? 80 : 40);
       if (t.id === 'world-seed') engine.command('regenerate', { seed: a.seed });
       if (t.id === 'world-biome') engine.command('biome', { biome: a.biome });
@@ -575,6 +687,6 @@ export function createAdventure(d) {
       }
     },
     metrics: () => engine.metrics(),
-    destroy: () => engine.mount(null),
+    destroy: () => { engine.mount(null); photoMode = false; clearTimeout(momentTimer); if(photoURL) URL.revokeObjectURL(photoURL); photoURL = ''; },
   };
 }

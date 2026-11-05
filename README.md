@@ -5,8 +5,9 @@ A playful AI workspace where your pets help you write, research, build, and teac
 **Import into v0:** use this repository’s `main` branch and repository root
 (`package.json` is at the top level). Read [START_HERE.md](START_HERE.md), then ask
 Astra to follow the [full upgrade prompt](handoff/ASTRA_PROMPT.md). The complete
-working app is included. Version **0.4.0** adds a real Rust/WASM learning core,
-recursive teaching and portable training tools. React/Next migration remains future work.
+working app is included. Version **0.5.0** adds a playful Wilds activity system,
+a nature-walk passport and a real postcard camera, alongside the Rust/WASM learning
+core, recursive teaching and portable training tools. React/Next migration remains future work.
 
 Meet **Milo, the teacher**, and **Nova, the student**. Each pet is a customizable
 interface for a model you choose through OpenRouter. Give the teacher a task,
@@ -70,7 +71,29 @@ preview, a diagram workbench, or a place to build a small library of repeatable
 workflows. The pets make that work visible and fun; you stay in control of what
 gets approved and reused.
 
-## New: a teaching workshop
+## New: little adventures together
+
+Open **Open World → Play**, or **Pets → Open the play corner**. Milo and Nova
+can gather for a picnic, dance, blow bubbles, share a story, high-five or watch
+clouds. They keep their outfits, auras and proportions, and return to their
+previous walking route after a break. Live AI work continues in its own panels.
+
+Four nature trails offer twelve stops and four keepsake stamps. A visit counts
+when a companion actually arrives; the field journal remembers visits and
+completed play sessions on your device. You can download that journal as JSON.
+These are scenic memories, separate from the teaching workshop’s real evidence.
+
+The **postcard camera** frames the duo, hides the interface and exports an actual
+PNG in landscape, square or portrait format. Pan, zoom, pose the pets, and add a
+caption. Model responses and returned resource cards are excluded from the image.
+The controls support touch, keyboards and reduced motion.
+
+![Milo and Nova share a book on a picnic blanket at Curiosity Camp.](docs/images/wilds-story-postcard.png)
+
+*An actual in-app postcard. The pets, outfits, book and landscape are drawn by
+the app; this scene makes no model calls. See the [Play & postcard guide](docs/wilds-play.md).*
+
+## A teaching workshop
 
 Open **Teaching workshop** to let the student try first, receive feedback about
 that actual attempt, then revise. Choose one to three practice tasks and reserve

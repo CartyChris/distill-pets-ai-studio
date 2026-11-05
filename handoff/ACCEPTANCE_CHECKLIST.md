@@ -1,4 +1,4 @@
-<!-- 0.4.0 includes the learning core and Python training tools. This checklist remains for the next migration; rerun checks on its final source. -->
+<!-- 0.5.0 includes the learning core, Python training tools and Wilds play/postcard system. This checklist remains for the next migration; rerun checks on its final source. -->
 # Completion checklist for Astra
 
 Check these against the upgraded v0 app. This file does not claim the future

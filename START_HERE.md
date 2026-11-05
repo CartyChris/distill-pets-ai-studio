@@ -1,11 +1,14 @@
 # Distill Pets AI Studio — Astra / v0 handoff
 
-This repository contains the complete current **0.4.0 application source**, its lockfile,
+This repository contains the complete current **0.5.0 application source**, its lockfile,
 tests, PWA assets, pet artwork, Wilds gallery, existing research and documentation,
 plus the handoff below. The working application is included at the repository root.
 Rust/WASM analysis, recursive teaching, reviewed training bundles and Python
 audit/LoRA tools are implemented. React/Next and full Vercel migration remain
-future work for Astra. Read docs/learning-core.md before changing the new core.
+future work for Astra. Read docs/learning-core.md before changing the core.
+Version 0.5 also includes coordinated pet play, nature trails, an arrival-based
+passport and journal, and a Canvas PNG postcard camera. Preserve these during
+any framework migration; their state and tests are documented in docs/wilds-play.md.
 
 ## Import this repository in v0
 

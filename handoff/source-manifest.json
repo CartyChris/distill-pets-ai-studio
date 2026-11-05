@@ -98,6 +98,6 @@
     "tsconfig.json": "c3df7d9e7ce2ec1fbfb3884f3b091ec1f3d57a814a29c354e03700e31a3834ff"
   },
   "manifest_kind": "baseline_commit_snapshot",
-  "description": "Historical 0.3.0 baseline hash snapshot. Current application source changed in 0.4.0; these are not current file hashes. The current WASM/source hashes are in core/wasm-manifest.json.",
-  "current_version": "0.4.0"
+  "description": "Historical 0.3.0 baseline hash snapshot. Current application source changed in 0.4.0 and 0.5.0; these are not current file hashes. The current WASM/source hashes are in core/wasm-manifest.json.",
+  "current_version": "0.5.0"
 }

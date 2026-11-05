@@ -2,7 +2,7 @@
 
 Historical baseline: Distill Pets AI Studio 0.3.0, commit
 7234e06aaa7c258ffb4d345c60c2efa53aa403eb. The source-manifest.json hashes
-identify historical baseline files, not current 0.4.0 content. The current
+identify historical baseline files, not current 0.5.0 content. The current
 application includes the implemented learning-core upgrade described below.
 
 | Area | Existing entry points | Preserve / migrate |
@@ -20,6 +20,7 @@ application includes the implemented learning-core upgrade described below.
 | Forge | src/forge.js, src/forge.css | Actual Mermaid parsing and sanitized SVG/PNG; constrained generative UI schema/actions. |
 | Studios | src/studio.js, src/studio-evolution.css | Coding, generated files, editable workspace, sandboxed preview, research, observer/tutor context, partial recovery. |
 | Wilds | src/wilds.js, src/adventure.js, src/adventure-state.js, src/world-engine.js, src/adventure.css | Original expedition view plus expanded procedural Canvas world, public dialogue/results and guidance. |
+| Play / passport / photos | src/world-play.js, src/playbook.js, src/play-panel.js, src/world-play.css | Six interruptible activities, walking-route restoration, bounded cosmetic memories, arrival-only stamps, real PNG camera and mobile controls. |
 | Pets / appearance | src/pixels.js, src/field-kit.js, src/customize.js, src/avatar-proportions.css, src/brand.css | Native 36×48 sprites, outfits, personality, emotes, palettes, scale, density, radius, fonts and motion. |
 | PWA | src/pwa.js, public/sw.js, public/manifest.webmanifest, public/icons/, index.html | Stable installation metadata, safe areas, offline saved work, update/install guidance; API requests excluded from cache. |
 | Provenance / help | THIRD_PARTY_NOTICES.md, README.md, docs/ | Preserve licenses and accurate capability descriptions; retain Wilds images. |
@@ -31,6 +32,11 @@ The current main workspace lives under localStorage key **pip-studio-v1**, versi
 generation, studio, academy, wilds, adventure, appearance, chipLab, superpowers,
 forge, teaching and drafts. Inspect DEFAULTS and validateBackup in src/app.js,
 plus each module’s cleaner, before changing schemas.
+
+Version 0.5 adds `adventure.playbook`. `cleanPlaybook` accepts only known scenic
+IDs, bounds its journal to 32 entries and counters to 9,999. Activities in progress
+and postcard image blobs are ephemeral. No model prompts or responses enter the
+field journal. Older workspaces receive an empty passport automatically.
 
 Keep legacy pet/outfit/theme IDs and chip parent/revision references compatible.
 Keys are deliberately held outside saved state. A new hosting origin will have

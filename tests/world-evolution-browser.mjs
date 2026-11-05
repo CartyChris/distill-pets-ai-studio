@@ -58,6 +58,10 @@ const bad=await page.locator('.world-camera-tools button, .world-tabs button, .w
 assert.deepEqual(bad,[],`camera and panel controls fit ${size.width}×${size.height}`);
 }
 await page.evaluate(()=>{db.appearance.motion='reduced';adventure.refresh();});assert.equal(await page.locator('#adventure-root').getAttribute('data-gentle'),'true');
+await page.locator('[data-action="world-pause"]').click();
+const pausedFrames=await page.evaluate(()=>adventure.metrics().frames);
+await page.waitForTimeout(1100);
+assert.ok((await page.evaluate(()=>adventure.metrics().frames))-pausedFrames<=6,'Paused scenery avoids a full-speed rendering loop');
 await page.evaluate(()=>adventure.destroy());assert.equal(await page.evaluate(()=>adventure.metrics().runningLoops),0);
 assert.deepEqual(errors,[]);
 console.log('World evolution browser passed: opt-in practice forwarding, accurate call plan, searchable atlas, scenic visits, real practice/feedback display, explicit teacher/student questions, iPhone/landscape targets and cleanup.');

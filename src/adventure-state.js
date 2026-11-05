@@ -1,3 +1,5 @@
+import { cleanPlaybook } from './playbook.js';
+
 const one = (value, choices, fallback) =>
   choices.includes(value) ? value : fallback;
 const text = (value, max) =>
@@ -15,7 +17,7 @@ export function cleanAdventure(value) {
     density: one(x.density, ['lush', 'balanced'], 'lush'),
     panel: one(
       x.panel,
-      ['mission', 'results', 'dialogue', 'steer', 'field', 'world'],
+      ['mission', 'results', 'dialogue', 'steer', 'play', 'field', 'world'],
       'mission',
     ),
     panelOpen: x.panelOpen === true,
@@ -23,6 +25,7 @@ export function cleanAdventure(value) {
     practice: x.practice === true,
     practiceRounds: Math.min(3, Math.max(1, Math.round(Number(x.practiceRounds) || 1))),
     paused: false,
+    playbook: cleanPlaybook(x.playbook),
     goal: text(x.goal, 12000),
     skill: text(x.skill, 1000),
     kind: one(x.kind, ['teach', 'research', 'code', 'task'], 'teach'),

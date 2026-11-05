@@ -1,7 +1,7 @@
 {
   "name": "distill-pets-ai-studio",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite --config portable/vite.config.mjs --host 127.0.0.1",
@@ -9,11 +9,12 @@
     "start": "node portable/server.mjs",
     "preview": "node portable/server.mjs",
     "test": "node --test portable/tests/*.test.mjs",
-    "test:features": "node tests/conversations-unit.mjs && node tests/chip-lab-unit.mjs && node tests/world-evolution-unit.mjs && node tests/superpowers-unit.mjs && node tests/portable-brain.mjs && node tests/forge-unit.mjs && node tests/superpowers-cli-cancel.mjs && node tests/teaching-unit.mjs && node tests/preference-export.mjs && node tests/teaching-recursive.mjs && node tests/training-bundle.mjs",
+    "test:features": "node tests/conversations-unit.mjs && node tests/chip-lab-unit.mjs && node tests/world-evolution-unit.mjs && node tests/world-play-unit.mjs && node tests/superpowers-unit.mjs && node tests/portable-brain.mjs && node tests/forge-unit.mjs && node tests/superpowers-cli-cancel.mjs && node tests/teaching-unit.mjs && node tests/preference-export.mjs && node tests/teaching-recursive.mjs && node tests/training-bundle.mjs",
     "core:build": "node scripts/build-core.mjs",
     "test:core": "node tests/learning-core.mjs && node tests/learning-core-parity.mjs",
     "test:core:native": "cargo test --locked --manifest-path core/rust/Cargo.toml",
-    "test:browser:core": "node tests/learning-core-browser.mjs"
+    "test:browser:core": "node tests/learning-core-browser.mjs",
+    "test:browser:play": "node tests/world-play-browser.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.17",
