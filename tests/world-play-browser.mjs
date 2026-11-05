@@ -61,11 +61,32 @@ try {
   await playTab(page);await page.locator('[data-action="world-photo"]').click();
   assert.equal(await page.locator('#adventure-root').evaluate(e=>e.classList.contains('is-photo-mode')),true);
   assert.equal(await page.locator('.world-tabs').isVisible(),false);
+  // Keep real PNG encoding but delay its callback to exercise a user backing out.
+  await page.evaluate(()=>{
+    window.originalPostcardToBlob=HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob=function(callback,...args){return window.originalPostcardToBlob.call(this,blob=>setTimeout(()=>callback(blob),400),...args);};
+  });
+  await page.locator('[data-action="world-photo-save"]').click();
+  await page.locator('[data-action="world-photo-close"]').click();
+  await page.waitForTimeout(600);
+  assert.equal(await page.locator('#modal').evaluate(e=>e.open),false,'Cancelled PNG capture cannot open a stale preview');
+  assert.equal((await state(page)).postcards,0,'Cancelled capture does not create a journal memory');
+  await page.evaluate(()=>{HTMLCanvasElement.prototype.toBlob=window.originalPostcardToBlob;delete window.originalPostcardToBlob;});
+  await page.locator('[data-action="world-photo"]').click();
   await page.locator('#world-photo-caption').fill('Milo & Nova · wishing on bubbles');
   for (const [format,ratio] of [['landscape',16/9],['square',1],['portrait',9/16]]) {
     await page.locator('#world-photo-format').selectOption(format);
-    await page.locator('[data-action="world-photo-save"]').click();
-    const preview=page.locator('.world-postcard-preview');await preview.waitFor();
+    if(format==='portrait') await page.locator('#world-photo-caption').press('Enter');
+    else await page.locator('[data-action="world-photo-save"]').click();
+    const preview=page.locator('.world-postcard-preview');
+    try { await preview.waitFor({timeout:10000}); }
+    catch(error) {
+      console.error('Postcard preview diagnostic',format,await page.evaluate(()=>{
+        const image=document.querySelector('.world-postcard-preview'),modal=document.getElementById('modal');
+        return {modalOpen:modal.open,imageLoaded:image?.complete,naturalWidth:image?.naturalWidth,toast:document.getElementById('toast').textContent,photoMode:document.querySelector('.is-photo-mode')!==null};
+      }),errors);
+      throw error;
+    }
     await preview.evaluate(e=>e.decode());
     const size=await preview.evaluate(e=>({width:e.naturalWidth,height:e.naturalHeight}));
     assert.ok(Math.abs(size.width/size.height-ratio)<.01,format+' keeps proportions');

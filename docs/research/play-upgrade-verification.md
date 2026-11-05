@@ -23,7 +23,7 @@ framework or deploy a new hosting service.
 | Existing feature suite | Conversations, chips, workflows, export/cancellation, Forge, teaching, preferences and training-bundle checks passed. |
 | New play state/director tests | Bounds, known IDs, all six lifecycles, deduplicated arrival, route restore, pause/cancel, PNG crop geometry passed. |
 | Existing Wilds browser suite | Practice options, accurate call plans, atlas, guided walking, actual dialogue, mobile controls and loop cleanup passed. |
-| New actual-app browser suite | Completion/cancel, passport, reload, downloadable journal and three real PNG formats passed with zero inference requests. |
+| New actual-app browser suite | Completion/cancel, passport, reload, downloadable journal and three real PNG formats passed with zero inference requests; delayed PNG cancellation and keyboard capture are also covered. |
 | Avatar regressions | 54 view/profile checks covering 548 sprite canvases, with normal and enlarged text passed. |
 | Responsive regression | 306 view/viewport combinations, 320×568 through 1440×900, including landscape, long names and enlarged spacing passed. |
 | Rust/WASM parity | Committed binary/source integrity, actual WASM vs JS results, fallback and cancellation passed. |
@@ -35,6 +35,12 @@ physical iPhone/Safari testing. Provider-dependent tests use intercepted fixture
 or the labeled Playground; no paid inference or new weight-training job was run
 for this UI release. Existing Mermaid dependency chunk-size notices remain in
 the build; this release adds no runtime dependency.
+
+The first remote run exposed an intermittent postcard preview failure. Capture
+now decodes the PNG before opening its preview, provides intrinsic image sizes,
+dispatches button capture explicitly, and discards results if the user closes
+the camera while encoding. The regression retains real PNG encoding, delays its
+callback to test cancellation, and checks both button and keyboard capture.
 
 ## Preserved boundaries
 

@@ -49,6 +49,7 @@ export function createAdventure(d) {
     photoMode = false,
     photoURL = '',
     photoBusy = false,
+    photoRequest = 0,
     momentTimer;
   const book = () => state().playbook || (state().playbook = cleanPlaybook());
   const engine = createWorldEngine({
@@ -131,6 +132,34 @@ export function createAdventure(d) {
     for (const [name, value] of Object.entries({ left: crop.x, top: crop.y, width: crop.width, height: crop.height })) frame.style[name] = `${value}px`;
     root.querySelector('#world-photo-format').value = book().format;
   }
+  async function makePostcard() {
+    if (photoBusy || !photoMode) return;
+    photoBusy = true;
+    const request = ++photoRequest;
+    const button = document.querySelector('[data-action="world-photo-save"]');
+    button.disabled = true; button.textContent = 'Making a little memory…';
+    let pendingURL = '';
+    try {
+      const format = book().format;
+      const caption = document.getElementById('world-photo-caption').value.trim() || 'A little moment in the Wilds';
+      const blob = await engine.capture({format,caption});
+      if (request !== photoRequest || !photoMode) return;
+      pendingURL = URL.createObjectURL(blob);
+      const preview = new Image();
+      preview.src = pendingURL;
+      await preview.decode();
+      if (request !== photoRequest || !photoMode) return;
+      if (photoURL) URL.revokeObjectURL(photoURL);
+      photoURL = pendingURL; pendingURL = '';
+      remember('photo',format);
+      d.openModal(`<h2 id="modal-title">A little moment to keep.</h2><img class="world-postcard-preview" width="${preview.naturalWidth}" height="${preview.naturalHeight}" src="${photoURL}" alt="${h(caption)}"><p class="help">Your actual world, captured as a PNG. On iPhone, open the image and use Share → Save Image.</p><div class="row"><a class="button" href="${photoURL}" download="distill-pets-wilds-${format}.png">Download PNG</a><a class="button" href="${photoURL}" target="_blank" rel="noopener">Open image</a>${btn('close','Keep exploring')}</div>`);
+    } catch(err) {
+      if (request === photoRequest && photoMode) d.toast(err.message || 'The postcard could not be made. Please try again.');
+    } finally {
+      if (pendingURL) URL.revokeObjectURL(pendingURL);
+      photoBusy = false; button.disabled = false; button.textContent = '▣ Make postcard';
+    }
+  }
   function refreshScene() {
     const root = document.getElementById('adventure-root');
     if (!root) return;
@@ -195,7 +224,7 @@ export function createAdventure(d) {
       <section class="world-photo-controls" data-world-photo-controls aria-label="Postcard camera" hidden>
         <div class="world-photo-frame" aria-hidden="true"><span>A LITTLE MOMENT IN THE WILDS</span></div>
         <div class="world-photo-top">${btn('world-photo-close','↩ Back to the Wilds')}${btn('world-photo-frame','Frame the duo')}${btn('world-photo-pose','✦ Say berries!')}</div>
-        <form class="world-photo-bottom" id="world-photo-form"><div><label for="world-photo-caption">Postcard caption</label><input id="world-photo-caption" maxlength="90" value="${h(d.getDB().agents.milo.name + ' & ' + d.getDB().agents.nova.name + ' · a little adventure')}" autocomplete="off"></div><div><label for="world-photo-format">Frame</label><select id="world-photo-format"><option value="landscape">Landscape · 16:9</option><option value="square">Square · 1:1</option><option value="portrait">Portrait · 9:16</option></select></div>${btn('world-photo-save','▣ Make postcard','primary','type="submit"')}<p>Drag to frame · pinch to zoom. Postcards include scenery and pet names; live responses and resource cards stay private.</p></form>
+        <form class="world-photo-bottom" id="world-photo-form"><div><label for="world-photo-caption">Postcard caption</label><input id="world-photo-caption" maxlength="90" value="${h(d.getDB().agents.milo.name + ' & ' + d.getDB().agents.nova.name + ' · a little adventure')}" autocomplete="off"></div><div><label for="world-photo-format">Frame</label><select id="world-photo-format"><option value="landscape">Landscape · 16:9</option><option value="square">Square · 1:1</option><option value="portrait">Portrait · 9:16</option></select></div>${btn('world-photo-save','▣ Make postcard','primary','type="button"')}<p>Drag to frame · pinch to zoom. Postcards include scenery and pet names; live responses and resource cards stay private.</p></form>
       </section>
     </section>`;
   }
@@ -436,6 +465,7 @@ export function createAdventure(d) {
       document.querySelector('[data-action="world-photo-close"]')?.focus({preventScroll:true});
       announce('Postcard camera open. Frame your companions and make a PNG keepsake.');
     } else if (name === 'world-photo-close') {
+      photoRequest++;
       photoMode = false; refreshPhoto();
       (document.querySelector('[data-action="world-photo"]') || document.getElementById('world-canvas'))?.focus({preventScroll:true});
     } else if (name === 'world-photo-frame') engine.command('frame-pair',{format:book().format});
@@ -443,8 +473,7 @@ export function createAdventure(d) {
       for (const agent of ['milo','nova']) engine.command('emote',{agent,kind:'wave'});
       announce('A little wave for the postcard.');
     } else if (name === 'world-photo-save') {
-      // The form submit handler owns this action, including keyboard submission.
-      return;
+      await makePostcard();
     } else if (name === 'world-tab') {
       if (!TABS[data.tab]) return;
       a.panel = data.tab;
@@ -590,20 +619,7 @@ export function createAdventure(d) {
   document.addEventListener('submit', async (e) => {
     if (e.target.id === 'world-photo-form') {
       e.preventDefault();
-      if (photoBusy) return;
-      photoBusy = true;
-      const button = e.target.querySelector('[data-action="world-photo-save"]');
-      button.disabled = true; button.textContent = 'Making a little memory…';
-      try {
-        const format = book().format;
-        const caption = document.getElementById('world-photo-caption').value.trim() || 'A little moment in the Wilds';
-        const blob = await engine.capture({format,caption});
-        if (photoURL) URL.revokeObjectURL(photoURL);
-        photoURL = URL.createObjectURL(blob);
-        remember('photo',format);
-        d.openModal(`<h2 id="modal-title">A little moment to keep.</h2><img class="world-postcard-preview" src="${photoURL}" alt="${h(caption)}"><p class="help">Your actual world, captured as a PNG. On iPhone, open the image and use Share → Save Image.</p><div class="row"><a class="button" href="${photoURL}" download="distill-pets-wilds-${format}.png">Download PNG</a><a class="button" href="${photoURL}" target="_blank" rel="noopener">Open image</a>${btn('close','Keep exploring')}</div>`);
-      } catch(err) { d.toast(err.message || 'The postcard could not be made. Please try again.'); }
-      finally { photoBusy = false; button.disabled = false; button.textContent = '▣ Make postcard'; }
+      await makePostcard();
       return;
     }
     if (e.target.id !== 'world-guide-form') return;
@@ -687,6 +703,6 @@ export function createAdventure(d) {
       }
     },
     metrics: () => engine.metrics(),
-    destroy: () => { engine.mount(null); photoMode = false; clearTimeout(momentTimer); if(photoURL) URL.revokeObjectURL(photoURL); photoURL = ''; },
+    destroy: () => { engine.mount(null); photoRequest++; photoMode = false; clearTimeout(momentTimer); if(photoURL) URL.revokeObjectURL(photoURL); photoURL = ''; },
   };
 }
